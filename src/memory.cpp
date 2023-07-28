@@ -1,6 +1,6 @@
 #include "memory.h"
 
-_START_HOOKUP_NM_
+_START_WINHOOKUPP_NM_
 
 VOID Memory::UninitializeBuffer() noexcept {
 	MemoryBlock* head = memory_blocks_;
@@ -143,7 +143,7 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 	minAddr = (uintptr_t)si.lpMinimumApplicationAddress;
 	maxAddr = (uintptr_t)si.lpMaximumApplicationAddress;
 
-	// origin ¡À 512MB
+	// origin +- 512MB
 	if ((uintptr_t)origin > MAX_MEMORY_RANGE && minAddr < (uintptr_t)origin - MAX_MEMORY_RANGE)
 		minAddr = (uintptr_t)origin - MAX_MEMORY_RANGE;
 
@@ -226,5 +226,12 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 	return block;
 }
 
+BOOL Memory::IsExecutableAddress(LPVOID pAddress) const noexcept
+{
+    MEMORY_BASIC_INFORMATION mi;
+    VirtualQuery(pAddress, &mi, sizeof(mi));
 
-_END_HOOKUP_NM_
+    return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
+}
+
+_END_WINHOOKUPP_NM_

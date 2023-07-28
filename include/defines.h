@@ -1,7 +1,7 @@
 #pragma once
 
-#define HOOKUP_NM hookup
+#define WINHOOKUPP_NM hookup
 
-#define _START_HOOKUP_NM_ namespace hookup{
+#define _START_WINHOOKUPP_NM_ namespace hookup{
 
-#define _END_HOOKUP_NM_ };
+#define _END_WINHOOKUPP_NM_ };

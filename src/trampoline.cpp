@@ -6,7 +6,7 @@
 #include "memory.h"
 
 
-_START_HOOKUP_NM_
+_START_WINHOOKUPP_NM_
 
 namespace {
 }
@@ -99,4 +99,4 @@ void TrampolineHook::Disable()
 	trampoline_ = 0;
 }
 
-_END_HOOKUP_NM_
+_END_WINHOOKUPP_NM_

@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-_START_HOOKUP_NM_
+_START_WINHOOKUPP_NM_
 
 class TrampolineHook
 {
@@ -26,4 +26,4 @@ private:
 	size_t size_;
 };
 
-_END_HOOKUP_NM_
+_END_WINHOOKUPP_NM_

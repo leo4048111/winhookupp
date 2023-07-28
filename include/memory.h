@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <Windows.h>
 
-_START_HOOKUP_NM_
+_START_WINHOOKUPP_NM_
 
 // Size of each memory block. (= page size of VirtualAlloc)
 #define MEMORY_BLOCK_SIZE 0x1000
@@ -49,15 +49,16 @@ public:
 	} MemoryBlock;
 
 public:
-	Memory& GetInstance() const noexcept
+	static Memory& GetInstance() noexcept
 	{
 		static Memory inst;
 		return inst;
 	}
 
+	~Memory() = default;
+
 private:
 	Memory() = default;
-	~Memory() = default;
 	// no copy
 	Memory(const Memory&) = delete;
 	Memory& operator=(const Memory&) = delete;
@@ -86,6 +87,8 @@ public:
 
 	VOID FreeBuffer(LPVOID buffer) noexcept;
 
+	BOOL IsExecutableAddress(LPVOID pAddress) const noexcept;
+
 private:
 #if defined(_M_X64) || defined(__x86_64__)
 	LPVOID FindPrevFreeRegion(LPVOID address, LPVOID minAddr, DWORD dwAllocationGranularity);
@@ -99,4 +102,4 @@ private:
 	MemoryBlock* memory_blocks_{ nullptr };
 };
 
-_END_HOOKUP_NM_
+_END_WINHOOKUPP_NM_
