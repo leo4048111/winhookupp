@@ -13,7 +13,6 @@ public:
 
 private:
     DWORD old_protect_;
-    PVOID hVeh_;
     LPVOID target_;         // [In] Address of the target function.
     LPVOID detour_;         // [In] Address of the detour function.
 };
