@@ -2,13 +2,14 @@
 
 _START_WINHOOKUPP_NM_
 
-VOID Memory::UninitializeBuffer() noexcept {
-	MemoryBlock* head = memory_blocks_;
+Memory::~Memory() noexcept
+{
+	MemoryBlock *head = memory_blocks_;
 	memory_blocks_ = nullptr;
 
 	while (head)
 	{
-		MemoryBlock* next = head->next;
+		MemoryBlock *next = head->next;
 		VirtualFree(head, 0, MEM_RELEASE);
 		head = next;
 	}
@@ -16,8 +17,8 @@ VOID Memory::UninitializeBuffer() noexcept {
 
 LPVOID Memory::AllocateBuffer(LPVOID origin) noexcept
 {
-	MemorySlot* slot;
-	MemoryBlock* block = GetMemoryBlock(origin);
+	MemorySlot *slot;
+	MemoryBlock *block = GetMemoryBlock(origin);
 	if (block == nullptr)
 		return NULL;
 
@@ -35,15 +36,15 @@ LPVOID Memory::AllocateBuffer(LPVOID origin) noexcept
 
 VOID Memory::FreeBuffer(LPVOID buffer) noexcept
 {
-	MemoryBlock* block = memory_blocks_;
-	MemoryBlock* prevBlock = nullptr;
+	MemoryBlock *block = memory_blocks_;
+	MemoryBlock *prevBlock = nullptr;
 	uintptr_t targetBlock = ((uintptr_t)buffer / MEMORY_BLOCK_SIZE) * MEMORY_BLOCK_SIZE;
 
 	while (block)
 	{
 		if ((uintptr_t)block == targetBlock)
 		{
-			MemorySlot* slot = (MemorySlot*)buffer;
+			MemorySlot *slot = (MemorySlot *)buffer;
 #ifdef _DEBUG
 			// Clear the released slot for debugging.
 			memset(slot, 0x00, sizeof(MemorySlot));
@@ -131,9 +132,9 @@ LPVOID Memory::FindNextFreeRegion(LPVOID address, LPVOID maxAddr, DWORD dwAlloca
 }
 #endif
 
-Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
+Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 {
-	MemoryBlock* block;
+	MemoryBlock *block;
 #if defined(_M_X64) || defined(__x86_64__)
 	uintptr_t minAddr;
 	uintptr_t maxAddr;
@@ -177,7 +178,7 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 			if (alloc == NULL)
 				break;
 
-			block = (MemoryBlock*)VirtualAlloc(
+			block = (MemoryBlock *)VirtualAlloc(
 				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 			if (block != NULL)
 				break;
@@ -194,7 +195,7 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 			if (alloc == NULL)
 				break;
 
-			block = (MemoryBlock*)VirtualAlloc(
+			block = (MemoryBlock *)VirtualAlloc(
 				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 			if (block != NULL)
 				break;
@@ -202,14 +203,14 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 	}
 #else
 	// In x86 mode, a memory block can be placed anywhere.
-	block = (MemoryBlock*)VirtualAlloc(
+	block = (MemoryBlock *)VirtualAlloc(
 		NULL, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
 
 	if (block != NULL)
 	{
 		// Build a linked list of all the slots.
-		MemorySlot* slot = (MemorySlot*)block + 1;
+		MemorySlot *slot = (MemorySlot *)block + 1;
 		block->free = NULL;
 		block->usedCount = 0;
 		do
@@ -228,10 +229,10 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 
 BOOL Memory::IsExecutableAddress(LPVOID pAddress) const noexcept
 {
-    MEMORY_BASIC_INFORMATION mi;
-    VirtualQuery(pAddress, &mi, sizeof(mi));
+	MEMORY_BASIC_INFORMATION mi;
+	VirtualQuery(pAddress, &mi, sizeof(mi));
 
-    return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
+	return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
 }
 
 _END_WINHOOKUPP_NM_

@@ -15,4 +15,10 @@ TEST(winhookupp_test, winhookupp_test_memory)
     LPVOID buffer = new BYTE[64];
 
     EXPECT_EQ(memory.IsExecutableAddress(buffer), false);
+
+    LPVOID alloc = memory.AllocateBuffer(funcAddr);
+
+    EXPECT_EQ(memory.IsExecutableAddress(alloc), true);
+
+    memory.FreeBuffer(alloc);
 }

@@ -55,7 +55,7 @@ public:
 		return inst;
 	}
 
-	~Memory() = default;
+	~Memory();
 
 private:
 	Memory() = default;
@@ -80,8 +80,6 @@ public:
 	{
 		Patch(address, &data, sizeof(T));
 	}
-
-	VOID UninitializeBuffer() noexcept;
 
 	LPVOID AllocateBuffer(LPVOID origin) noexcept;
 
