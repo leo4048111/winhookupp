@@ -3,7 +3,7 @@
 #include <Windows.h>
 
 #include "defines.h"
-#include "mem.h"
+#include "memory.h"
 
 
 _START_HOOKUP_NM_

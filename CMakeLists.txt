@@ -2,11 +2,19 @@ cmake_minimum_required(VERSION 3.22)
 
 project(winhookupp)
 
+# -- project dirs --
 set(WINHOOKUPP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(WINHOOKUPP_SRC_DIR ${WINHOOKUPP_ROOT_DIR}/src)
+set(WINHOOKUPP_TESTS_DIR ${WINHOOKUPP_ROOT_DIR}/unit-tests)
 set(WINHOOKUPP_INCLUDE_DIR ${WINHOOKUPP_ROOT_DIR}/include)
 
-set(WINHOOKUPP_SRC_FILES
+## --project configs --
+set(ENABLE_TESTS ON)
+
+# -- deps
+add_subdirectory(${WINHOOKUPP_ROOT_DIR}/third-party/googletest)
+
+set(WINHOOKUPP_SRC
     ${WINHOOKUPP_SRC_DIR}/veh.cpp
     ${WINHOOKUPP_SRC_DIR}/trampoline.cpp
     ${WINHOOKUPP_SRC_DIR}/memory.cpp
@@ -14,6 +22,15 @@ set(WINHOOKUPP_SRC_FILES
     ${WINHOOKUPP_SRC_DIR}/hde/hde64.c
 )
 
-include_directories(${WINHOOKUPP_INCLUDE_DIR})
+set(WINHOOKUPP_TESTS
+    ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_main.cpp
+    )
 
-add_executable(winhookupp ${WINHOOKUPP_SRC_FILES} main.cpp)
+include_directories(${WINHOOKUPP_INCLUDE_DIR} ${GOOGLETEST_INCLUDE_DIR})
+
+add_library(winhookupp STATIC ${WINHOOKUPP_SRC})
+
+if(ENABLE_TESTS)
+    add_executable(winhookupp_test ${WINHOOKUPP_TESTS})
+    target_link_libraries(winhookupp_test winhookupp gtest)
+endif()

@@ -72,6 +72,65 @@ VOID Memory::FreeBuffer(LPVOID buffer) noexcept
 	}
 }
 
+#if defined(_M_X64) || defined(__x86_64__)
+LPVOID Memory::FindPrevFreeRegion(LPVOID address, LPVOID minAddr, DWORD dwAllocationGranularity)
+{
+	uintptr_t tryAddr = (uintptr_t)address;
+
+	// Round down to the allocation granularity.
+	tryAddr -= tryAddr % dwAllocationGranularity;
+
+	// Start from the previous allocation granularity multiply.
+	tryAddr -= dwAllocationGranularity;
+
+	while (tryAddr >= (uintptr_t)minAddr)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
+			break;
+
+		if (mbi.State == MEM_FREE)
+			return (LPVOID)tryAddr;
+
+		if ((uintptr_t)mbi.AllocationBase < dwAllocationGranularity)
+			break;
+
+		tryAddr = (uintptr_t)mbi.AllocationBase - dwAllocationGranularity;
+	}
+
+	return NULL;
+}
+
+LPVOID Memory::FindNextFreeRegion(LPVOID address, LPVOID maxAddr, DWORD dwAllocationGranularity)
+{
+	uintptr_t tryAddr = (uintptr_t)address;
+
+	// Round down to the allocation granularity.
+	tryAddr -= tryAddr % dwAllocationGranularity;
+
+	// Start from the next allocation granularity multiply.
+	tryAddr += dwAllocationGranularity;
+
+	while (tryAddr <= (uintptr_t)maxAddr)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
+			break;
+
+		if (mbi.State == MEM_FREE)
+			return (LPVOID)tryAddr;
+
+		tryAddr = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+
+		// Round up to the next allocation granularity.
+		tryAddr += dwAllocationGranularity - 1;
+		tryAddr -= tryAddr % dwAllocationGranularity;
+	}
+
+	return NULL;
+}
+#endif
+
 Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 {
 	MemoryBlock* block;
@@ -104,67 +163,67 @@ Memory::MemoryBlock* Memory::GetMemoryBlock(LPVOID origin) noexcept
 			continue;
 #endif
 		// The block has at least one unused slot.
-		if (pBlock->pFree != NULL)
-			return pBlock;
+		if (block->free)
+			return block;
 	}
 
 #if defined(_M_X64) || defined(__x86_64__)
 	// Alloc a new block above if not found.
 	{
-		LPVOID pAlloc = origin;
-		while ((ULONG_PTR)pAlloc >= minAddr)
+		LPVOID alloc = origin;
+		while ((uintptr_t)alloc >= minAddr)
 		{
-			pAlloc = FindPrevFreeRegion(pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
-			if (pAlloc == NULL)
+			alloc = FindPrevFreeRegion(alloc, (LPVOID)minAddr, si.dwAllocationGranularity);
+			if (alloc == NULL)
 				break;
 
-			pBlock = (PMEMORY_BLOCK)VirtualAlloc(
-				pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-			if (pBlock != NULL)
+			block = (MemoryBlock*)VirtualAlloc(
+				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+			if (block != NULL)
 				break;
 		}
 	}
 
 	// Alloc a new block below if not found.
-	if (pBlock == NULL)
+	if (block == NULL)
 	{
-		LPVOID pAlloc = origin;
-		while ((ULONG_PTR)pAlloc <= maxAddr)
+		LPVOID alloc = origin;
+		while ((uintptr_t)alloc <= maxAddr)
 		{
-			pAlloc = FindNextFreeRegion(pAlloc, (LPVOID)maxAddr, si.dwAllocationGranularity);
-			if (pAlloc == NULL)
+			alloc = FindNextFreeRegion(alloc, (LPVOID)maxAddr, si.dwAllocationGranularity);
+			if (alloc == NULL)
 				break;
 
-			pBlock = (PMEMORY_BLOCK)VirtualAlloc(
-				pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-			if (pBlock != NULL)
+			block = (MemoryBlock*)VirtualAlloc(
+				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+			if (block != NULL)
 				break;
 		}
 	}
 #else
 	// In x86 mode, a memory block can be placed anywhere.
-	pBlock = (PMEMORY_BLOCK)VirtualAlloc(
+	block = (MemoryBlock*)VirtualAlloc(
 		NULL, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
 
-	if (pBlock != NULL)
+	if (block != NULL)
 	{
 		// Build a linked list of all the slots.
-		PMEMORY_SLOT pSlot = (PMEMORY_SLOT)pBlock + 1;
-		pBlock->pFree = NULL;
-		pBlock->usedCount = 0;
+		MemorySlot* slot = (MemorySlot*)block + 1;
+		block->free = NULL;
+		block->usedCount = 0;
 		do
 		{
-			pSlot->pNext = pBlock->pFree;
-			pBlock->pFree = pSlot;
-			pSlot++;
-		} while ((ULONG_PTR)pSlot - (ULONG_PTR)pBlock <= MEMORY_BLOCK_SIZE - MEMORY_SLOT_SIZE);
+			slot->next = block->free;
+			block->free = slot;
+			slot++;
+		} while ((uintptr_t)slot - (uintptr_t)block <= MEMORY_BLOCK_SIZE - MEMORY_SLOT_SIZE);
 
-		pBlock->pNext = g_pMemoryBlocks;
-		g_pMemoryBlocks = pBlock;
+		block->next = memory_blocks_;
+		memory_blocks_ = block;
 	}
 
-	return pBlock;
+	return block;
 }
 
 

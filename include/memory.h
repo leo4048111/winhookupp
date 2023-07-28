@@ -35,7 +35,7 @@ public:
 	{
 		union
 		{
-			struct MemorySlot* next;
+			MemorySlot* next{nullptr};
 			uint8_t buffer[MEMORY_SLOT_SIZE];
 		};
 	} MemorySlot;
@@ -43,9 +43,9 @@ public:
 	// Memory block info. Placed at the head of each block.
 	typedef struct MemoryBlock
 	{
-		MemoryBlock* next;
-		MemorySlot* free;         // First element of the free slot list.
-		size_t usedCount;
+		MemoryBlock* next{nullptr};
+		MemorySlot* free{nullptr};         // First element of the free slot list.
+		size_t usedCount{ 0 };
 	} MemoryBlock;
 
 public:
@@ -87,6 +87,12 @@ public:
 	VOID FreeBuffer(LPVOID buffer) noexcept;
 
 private:
+#if defined(_M_X64) || defined(__x86_64__)
+	LPVOID FindPrevFreeRegion(LPVOID address, LPVOID minAddr, DWORD dwAllocationGranularity);
+
+	LPVOID FindNextFreeRegion(LPVOID address, LPVOID maxAddr, DWORD dwAllocationGranularity);
+#endif
+
 	MemoryBlock* GetMemoryBlock(LPVOID origin) noexcept;
 
 private:
