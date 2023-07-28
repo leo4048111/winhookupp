@@ -2,28 +2,24 @@
 
 #include "defines.h"
 
-#include <cstdint>
-
 _START_WINHOOKUPP_NM_
-
 class TrampolineHook
 {
-public:
-	TrampolineHook(uintptr_t target, uintptr_t detour, size_t size);
-	~TrampolineHook();
-
-	size_t GetSize() const;
-	uintptr_t GetTarget() const;
-	uintptr_t GetDetour() const;
-
-	void Enable();
-	void Disable();
-
 private:
-	uintptr_t target_;
-	uintptr_t detour_;
-	uintptr_t trampoline_;
-	size_t size_;
+	BOOL CreateTrampolineFunction() noexcept;
+	
+private:
+    LPVOID target_;         // [In] Address of the target function.
+    LPVOID detour_;         // [In] Address of the detour function.
+    LPVOID trampoline_;     // [In] Buffer address for the trampoline and relay function.
+
+#if defined(_M_X64) || defined(__x86_64__)
+    LPVOID relay_;          // [Out] Address of the relay function.
+#endif
+    BOOL   patchAbove_;      // [Out] Should use the hot patch area?
+    size_t   nIP_;             // [Out] Number of the instruction boundaries.
+    uint8_t  oldIPs_[8];       // [Out] Instruction boundaries of the target function.
+    uint8_t  newIPs_[8];       // [Out] Instruction boundaries of the trampoline function.
 };
 
 _END_WINHOOKUPP_NM_

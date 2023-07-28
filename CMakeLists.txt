@@ -25,6 +25,7 @@ set(WINHOOKUPP_SRC
 set(WINHOOKUPP_TESTS
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_main.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_memory.cpp
+    ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_instructions.cpp
     )
 
 include_directories(${WINHOOKUPP_INCLUDE_DIR} ${GOOGLETEST_INCLUDE_DIR})
