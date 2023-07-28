@@ -2,11 +2,13 @@
 
 #include <Windows.h>
 #include <unordered_map>
+#include <mutex>
 
 _START_WINHOOKUPP_NM_
 
 namespace
 {
+    ::std::mutex g_mutex;
     ::std::unordered_map<uintptr_t, uintptr_t> g_active_veh_hooks;
     LPVOID g_hVeh = nullptr;
     bool g_veh_hook_installed = false;
@@ -19,6 +21,7 @@ namespace
         {
         case STATUS_GUARD_PAGE_VIOLATION:
         {
+            ::std::lock_guard<::std::mutex> lock(g_mutex);
             if (g_active_veh_hooks.find(rip) != g_active_veh_hooks.end())
             {
                 exception_pointers->ContextRecord->Rip = g_active_veh_hooks[rip];
@@ -45,10 +48,13 @@ BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
     target_ = target;
     detour_ = detour;
 
-    if (g_active_veh_hooks.find((uintptr_t)target_) != g_active_veh_hooks.end())
-        return false;
+    {
+		::std::lock_guard<::std::mutex> lock(g_mutex);
+        if (g_active_veh_hooks.find((uintptr_t)target_) != g_active_veh_hooks.end())
+            return false;
 
-    g_active_veh_hooks.insert({(uintptr_t)target_, (uintptr_t)detour_});
+        g_active_veh_hooks.insert({(uintptr_t)target_, (uintptr_t)detour_});
+    }
 
     if (!g_veh_hook_installed)
     {
@@ -64,11 +70,17 @@ BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
 
 BOOL Veh::Disable() noexcept
 {
-    if (g_active_veh_hooks.find((uintptr_t)target_) == g_active_veh_hooks.end())
-        return false;
-        
-    g_active_veh_hooks.erase((uintptr_t)target_);
-    if (g_active_veh_hooks.empty())
+    bool should_remove_veh = false;
+    {
+        ::std::lock_guard<::std::mutex> lock(g_mutex);
+        if (g_active_veh_hooks.find((uintptr_t)target_) == g_active_veh_hooks.end())
+            return false;
+
+        g_active_veh_hooks.erase((uintptr_t)target_);
+        should_remove_veh = g_active_veh_hooks.empty();
+    }
+
+    if (should_remove_veh)
     {
         if (!RemoveVectoredExceptionHandler(g_hVeh))
             return false;
