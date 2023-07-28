@@ -67,6 +67,11 @@ private:
 	Memory& operator=(const Memory&&) = delete;
 
 public:
+	static VOID Copy(LPVOID dst, LPVOID src, size_t size) noexcept
+	{
+		Patch(dst, src, size);
+	}
+
 	static VOID Patch(LPVOID address, LPBYTE data, size_t size) noexcept
 	{
 		DWORD oldProtect;
