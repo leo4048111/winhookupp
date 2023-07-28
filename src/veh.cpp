@@ -29,7 +29,7 @@ namespace
         case STATUS_SINGLE_STEP:
         {
             DWORD dwOldProtect;
-            for(auto& hook: g_active_veh_hooks)
+            for (auto &hook : g_active_veh_hooks)
                 VirtualProtect((LPVOID)hook.first, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &dwOldProtect);
 
             return EXCEPTION_CONTINUE_EXECUTION; // Continue the next instruction
@@ -45,10 +45,10 @@ BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
     target_ = target;
     detour_ = detour;
 
-    if(g_active_veh_hooks.find((uintptr_t)target_) != g_active_veh_hooks.end())
+    if (g_active_veh_hooks.find((uintptr_t)target_) != g_active_veh_hooks.end())
         return false;
 
-    g_active_veh_hooks.insert({ (uintptr_t)target_, (uintptr_t)detour_ });
+    g_active_veh_hooks.insert({(uintptr_t)target_, (uintptr_t)detour_});
 
     if (!g_veh_hook_installed)
     {
@@ -56,23 +56,29 @@ BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
         g_veh_hook_installed = true;
     }
 
-    if (!VirtualProtect((LPVOID)target_, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &old_protect_)) return false;
+    if (!VirtualProtect((LPVOID)target_, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &old_protect_))
+        return false;
 
     return true;
 }
 
 BOOL Veh::Disable() noexcept
 {
+    if (g_active_veh_hooks.find((uintptr_t)target_) == g_active_veh_hooks.end())
+        return false;
+        
     g_active_veh_hooks.erase((uintptr_t)target_);
-    if(g_active_veh_hooks.empty())
+    if (g_active_veh_hooks.empty())
     {
-        if (!RemoveVectoredExceptionHandler(g_hVeh)) return false;
+        if (!RemoveVectoredExceptionHandler(g_hVeh))
+            return false;
 
         g_veh_hook_installed = false;
     }
 
     DWORD foo;
-    if (!VirtualProtect((LPVOID)target_, 1, old_protect_, &foo)) return false;
+    if (!VirtualProtect((LPVOID)target_, 1, old_protect_, &foo))
+        return false;
 
     return true;
 }
