@@ -1,0 +1,80 @@
+#include "veh.h"
+
+#include <Windows.h>
+#include <unordered_map>
+
+_START_WINHOOKUPP_NM_
+
+namespace
+{
+    ::std::unordered_map<uintptr_t, uintptr_t> g_active_veh_hooks;
+    LPVOID g_hVeh = nullptr;
+    bool g_veh_hook_installed = false;
+
+    LONG WINAPI VehHandler(PEXCEPTION_POINTERS exception_pointers)
+    {
+        uintptr_t rip = exception_pointers->ContextRecord->Rip;
+
+        switch (exception_pointers->ExceptionRecord->ExceptionCode)
+        {
+        case STATUS_GUARD_PAGE_VIOLATION:
+        {
+            if (g_active_veh_hooks.find(rip) != g_active_veh_hooks.end())
+            {
+                exception_pointers->ContextRecord->Rip = g_active_veh_hooks[rip];
+            }
+            exception_pointers->ContextRecord->EFlags |= 0x100; // Will trigger an STATUS_SINGLE_STEP exception right after the next instruction get executed. In short, we come right back into this exception handler 1 instruction later
+            return EXCEPTION_CONTINUE_EXECUTION;                // Continue to next instruction
+        }
+        case STATUS_SINGLE_STEP:
+        {
+            DWORD dwOldProtect;
+            for(auto& hook: g_active_veh_hooks)
+                VirtualProtect((LPVOID)hook.first, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &dwOldProtect);
+
+            return EXCEPTION_CONTINUE_EXECUTION; // Continue the next instruction
+        }
+        default:
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
+    }
+}
+
+BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
+{
+    target_ = target;
+    detour_ = detour;
+
+    if(g_active_veh_hooks.find((uintptr_t)target_) != g_active_veh_hooks.end())
+        return false;
+
+    g_active_veh_hooks.insert({ (uintptr_t)target_, (uintptr_t)detour_ });
+
+    if (!g_veh_hook_installed)
+    {
+        g_hVeh = AddVectoredExceptionHandler(true, VehHandler);
+        g_veh_hook_installed = true;
+    }
+
+    if (!VirtualProtect((LPVOID)target_, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &old_protect_)) return false;
+
+    return true;
+}
+
+BOOL Veh::Disable() noexcept
+{
+    g_active_veh_hooks.erase((uintptr_t)target_);
+    if(g_active_veh_hooks.empty())
+    {
+        if (!RemoveVectoredExceptionHandler(g_hVeh)) return false;
+
+        g_veh_hook_installed = false;
+    }
+
+    DWORD foo;
+    if (!VirtualProtect((LPVOID)target_, 1, old_protect_, &foo)) return false;
+
+    return true;
+}
+
+_END_WINHOOKUPP_NM_

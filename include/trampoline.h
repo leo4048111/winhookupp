@@ -1,12 +1,18 @@
 #pragma once
 
 #include "defines.h"
+#include "hook.h"
 
 _START_WINHOOKUPP_NM_
-class TrampolineHook
+class Trampoline : public virtual Hook
 {
 private:
 	BOOL CreateTrampolineFunction() noexcept;
+
+public:
+    virtual BOOL Enable(LPVOID target, LPVOID detour) noexcept override;
+
+    virtual BOOL Disable() noexcept override;
 	
 private:
     LPVOID target_;         // [In] Address of the target function.

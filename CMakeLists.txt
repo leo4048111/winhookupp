@@ -25,6 +25,7 @@ set(WINHOOKUPP_SRC
 set(WINHOOKUPP_TESTS
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_main.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_memory.cpp
+    ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_veh.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_instructions.cpp
     )
 

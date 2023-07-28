@@ -6,8 +6,20 @@
 
 _START_WINHOOKUPP_NM_
 
-BOOL TrampolineHook::CreateTrampolineFunction() noexcept
+BOOL Trampoline::CreateTrampolineFunction() noexcept
 {
+	return true;
+}
+
+BOOL Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
+{
+	// TODO: implementation
+	return true;
+}
+
+BOOL Trampoline::Disable() noexcept
+{
+	// TODO: implementation
 	return true;
 }
 
