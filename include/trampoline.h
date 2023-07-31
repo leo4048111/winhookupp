@@ -27,6 +27,8 @@ private:
     uint8_t  oldIPs_[8];       // [Out] Instruction boundaries of the target function.
     uint8_t  newIPs_[8];       // [Out] Instruction boundaries of the trampoline function.
 
+    bool queueEnable_{ false };
+    uint8_t backup_[8];
 };
 
 _END_WINHOOKUPP_NM_

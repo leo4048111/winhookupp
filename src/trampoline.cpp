@@ -108,17 +108,15 @@ bool Trampoline::CreateTrampolineFunction() noexcept
             PUINT32 pRelAddr;
 
             // Avoid using memcpy to reduce the footprint.
-#ifndef ALLOW_INTRINSICS
-            memcpy(instBuf, (LPBYTE)oldInst, copySize);
-#else
-            __movsb(instBuf, (LPBYTE)oldInst, copySize);
-#endif
+
+            Memory::Copy((LPVOID)instBuf, (LPBYTE)oldInst, copySize);
+
             copySrc = instBuf;
 
             // Relative address is stored at (instruction length - immediate value length - 4).
-            pRelAddr = (PUINT32)(instBuf + hs.len - ((hs.flags & 0x3C) >> 2) - 4);
+            pRelAddr = (uint32_t*)(instBuf + hs.len - ((hs.flags & 0x3C) >> 2) - 4);
             *pRelAddr
-                = (UINT32)((oldInst + hs.len + (INT32)hs.disp.disp32) - (newInst + hs.len));
+                = (uint32_t)((oldInst + hs.len + (INT32)hs.disp.disp32) - (newInst + hs.len));
 
             // Complete the function if JMP (FF /4).
             if (hs.opcode == 0xFF && hs.modrm_reg == 4)
@@ -265,7 +263,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     jmp.address = (uintptr_t)detour_;
 
     relay_ = (LPBYTE)trampoline_ + newPos;
-    memcpy(relay_, &jmp, sizeof(jmp));
+    Memory::Copy((LPVOID)relay_, (LPBYTE)& jmp, sizeof(jmp));
 #endif
 
     return true;
@@ -285,12 +283,22 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
 	detour_ = detour;
     if (!CreateTrampolineFunction()) return false;
 
+    enabled_ = false;
+    queueEnable_ = false;
+    if (patchAbove_)
+    {
+        Memory::Copy((LPVOID)backup_, (LPBYTE)target_ - sizeof(JmpRel), sizeof(JmpRel) + sizeof(JmpRelShort));
+    }
+    else
+    {
+        Memory::Copy((LPVOID)backup_, (LPBYTE)target_, sizeof(JmpRel));
+    }
+
 	return true;
 }
 
 bool Trampoline::Disable() noexcept
 {
-	// TODO: implementation
 	return true;
 }
 

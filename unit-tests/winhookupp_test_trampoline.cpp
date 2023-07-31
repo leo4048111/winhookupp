@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "veh.h"
+#include "trampoline.h"
 
 namespace {
     BOOL WINAPI DetouredWriteConsole(
@@ -15,7 +15,7 @@ namespace {
     }
 }
 
-TEST(winhookupp_test, winhookupp_test_veh)
+TEST(winhookupp_test, winhookupp_test_trampoline)
 {
     using namespace WINHOOKUPP_NM;
 
@@ -26,9 +26,10 @@ TEST(winhookupp_test, winhookupp_test_veh)
     
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), true);
 
-    Veh veh;
-    EXPECT_EQ(veh.Enable(&WriteConsole, &DetouredWriteConsole), true);
+    Trampoline tramp;
+
+    EXPECT_EQ(tramp.Enable(&WriteConsole, &DetouredWriteConsole), true);
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), false);
-    EXPECT_EQ(veh.Disable(), true);
+    EXPECT_EQ(tramp.Disable(), true);
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), true);
 }
