@@ -72,6 +72,7 @@ bool Veh::Enable(LPVOID target, LPVOID detour) noexcept
     if (!VirtualProtect((LPVOID)target_, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &old_protect_))
         return false;
 
+    enabled_ = true;
     return true;
 }
 
@@ -99,6 +100,7 @@ bool Veh::Disable() noexcept
     if (!VirtualProtect((LPVOID)target_, 1, old_protect_, &foo))
         return false;
 
+    enabled_ = false;
     return true;
 }
 

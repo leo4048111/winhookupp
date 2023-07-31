@@ -283,7 +283,7 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
 
 	target_ = target;
 	detour_ = detour;
-	this->CreateTrampolineFunction();
+    if (!CreateTrampolineFunction()) return false;
 
 	return true;
 }

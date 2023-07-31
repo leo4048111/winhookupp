@@ -26,6 +26,7 @@ private:
     size_t   nIP_;             // [Out] Number of the instruction boundaries.
     uint8_t  oldIPs_[8];       // [Out] Instruction boundaries of the target function.
     uint8_t  newIPs_[8];       // [Out] Instruction boundaries of the trampoline function.
+
 };
 
 _END_WINHOOKUPP_NM_
