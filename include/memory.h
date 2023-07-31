@@ -67,7 +67,7 @@ private:
 	Memory& operator=(const Memory&&) = delete;
 
 public:
-	static VOID Copy(LPVOID dst, LPVOID src, size_t size) noexcept
+	static VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
 	{
 		Patch(dst, src, size);
 	}
@@ -86,11 +86,13 @@ public:
 		Patch(address, &data, sizeof(T));
 	}
 
+	static bool IsExecutableAddress(LPVOID pAddress) noexcept;
+
+	static bool IsCodePadding(LPBYTE pInst, size_t size) noexcept;
+
 	LPVOID AllocateBuffer(LPVOID origin) noexcept;
 
 	VOID FreeBuffer(LPVOID buffer) noexcept;
-
-	BOOL IsExecutableAddress(LPVOID pAddress) const noexcept;
 
 private:
 #if defined(_M_X64) || defined(__x86_64__)

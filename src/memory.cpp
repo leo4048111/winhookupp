@@ -227,12 +227,27 @@ Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 	return block;
 }
 
-BOOL Memory::IsExecutableAddress(LPVOID pAddress) const noexcept
+bool Memory::IsExecutableAddress(LPVOID pAddress) noexcept
 {
 	MEMORY_BASIC_INFORMATION mi;
 	VirtualQuery(pAddress, &mi, sizeof(mi));
 
 	return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
+}
+
+bool Memory::IsCodePadding(LPBYTE pInst, size_t size) noexcept
+{
+	size_t i;
+
+	if (pInst[0] != 0x00 && pInst[0] != 0x90 && pInst[0] != 0xCC)
+		return false;
+
+	for (i = 1; i < size; ++i)
+	{
+		if (pInst[i] != pInst[0])
+			return false;
+	}
+	return true;
 }
 
 _END_WINHOOKUPP_NM_

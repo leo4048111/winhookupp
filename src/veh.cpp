@@ -45,7 +45,7 @@ namespace
     }
 }
 
-BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
+bool Veh::Enable(LPVOID target, LPVOID detour) noexcept
 {
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();
@@ -75,7 +75,7 @@ BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
     return true;
 }
 
-BOOL Veh::Disable() noexcept
+bool Veh::Disable() noexcept
 {
     bool should_remove_veh = false;
     {

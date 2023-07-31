@@ -7,12 +7,12 @@ _START_WINHOOKUPP_NM_
 class Trampoline : public virtual Hook
 {
 private:
-	BOOL CreateTrampolineFunction() noexcept;
+	bool CreateTrampolineFunction() noexcept;
 
 public:
-    virtual BOOL Enable(LPVOID target, LPVOID detour) noexcept override;
+    virtual bool Enable(LPVOID target, LPVOID detour) noexcept override;
 
-    virtual BOOL Disable() noexcept override;
+    virtual bool Disable() noexcept override;
 	
 private:
     LPVOID target_;         // [In] Address of the target function.
@@ -22,7 +22,7 @@ private:
 #if defined(_M_X64) || defined(__x86_64__)
     LPVOID relay_;          // [Out] Address of the relay function.
 #endif
-    BOOL   patchAbove_;      // [Out] Should use the hot patch area?
+    bool   patchAbove_;      // [Out] Should use the hot patch area?
     size_t   nIP_;             // [Out] Number of the instruction boundaries.
     uint8_t  oldIPs_[8];       // [Out] Instruction boundaries of the target function.
     uint8_t  newIPs_[8];       // [Out] Instruction boundaries of the trampoline function.

@@ -9,7 +9,7 @@ public:
     virtual ~Hook() noexcept = default;
 
 private:
-    virtual BOOL Enable(LPVOID target, LPVOID detour) noexcept = 0;
+    virtual bool Enable(LPVOID target, LPVOID detour) noexcept = 0;
 
-    virtual BOOL Disable() noexcept = 0;
+    virtual bool Disable() noexcept = 0;
 };
