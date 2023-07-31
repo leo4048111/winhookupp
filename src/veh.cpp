@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <mutex>
 
+#include "memory.h"
+
 _START_WINHOOKUPP_NM_
 
 namespace
@@ -45,6 +47,11 @@ namespace
 
 BOOL Veh::Enable(LPVOID target, LPVOID detour) noexcept
 {
+    // check if the target and detour address are executable
+    auto& mm = Memory::GetInstance();
+    if (!mm.IsExecutableAddress(target) || !mm.IsExecutableAddress(detour))
+        return false;
+
     target_ = target;
     detour_ = detour;
 
