@@ -105,7 +105,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
             // Instructions using RIP relative addressing. (ModR/M = 00???101B)
 
             // Modify the RIP relative address.
-            PUINT32 pRelAddr;
+            uint32_t* relAddr;
 
             // Avoid using memcpy to reduce the footprint.
 
@@ -114,8 +114,8 @@ bool Trampoline::CreateTrampolineFunction() noexcept
             copySrc = instBuf;
 
             // Relative address is stored at (instruction length - immediate value length - 4).
-            pRelAddr = (uint32_t*)(instBuf + hs.len - ((hs.flags & 0x3C) >> 2) - 4);
-            *pRelAddr
+            relAddr = (uint32_t*)(instBuf + hs.len - ((hs.flags & 0x3C) >> 2) - 4);
+            *relAddr
                 = (uint32_t)((oldInst + hs.len + (INT32)hs.disp.disp32) - (newInst + hs.len));
 
             // Complete the function if JMP (FF /4).
