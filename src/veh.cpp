@@ -17,16 +17,24 @@ namespace
 
     LONG WINAPI VehHandler(PEXCEPTION_POINTERS exception_pointers)
     {
-        uintptr_t rip = exception_pointers->ContextRecord->Rip;
-
+        uintptr_t ip;
+#if defined(_M_X64) || defined(__x86_64__)
+        ip = exception_pointers->ContextRecord->Rip;
+#else 
+        ip = exception_pointers->ContextRecord->Eip;
+#endif
         switch (exception_pointers->ExceptionRecord->ExceptionCode)
         {
         case STATUS_GUARD_PAGE_VIOLATION:
         {
             ::std::lock_guard<::std::mutex> lock(g_mutex);
-            if (g_active_veh_hooks.find(rip) != g_active_veh_hooks.end())
+            if (g_active_veh_hooks.find(ip) != g_active_veh_hooks.end())
             {
-                exception_pointers->ContextRecord->Rip = g_active_veh_hooks[rip];
+#if defined(_M_X64) || defined(__x86_64__)
+                exception_pointers->ContextRecord->Rip = g_active_veh_hooks[ip];
+#else
+                exception_pointers->ContextRecord->Eip = g_active_veh_hooks[ip];
+#endif
             }
             exception_pointers->ContextRecord->EFlags |= 0x100; // Will trigger an STATUS_SINGLE_STEP exception right after the next instruction get executed. In short, we come right back into this exception handler 1 instruction later
             return EXCEPTION_CONTINUE_EXECUTION;                // Continue to next instruction
