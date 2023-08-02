@@ -287,41 +287,28 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
     queueEnable_ = false;
 
     patchedPos_ = (LPBYTE)target_;
-    // check if detour is reachable within a 32-bit rel jmp
+
+    // check if trampoline is reachable within a 32-bit rel jmp(very likely reachable)
+    // x64 needs relaying
+#if defined(_M_X64) || defined(__x86_64__)
+    int64_t jmpDst = (int64_t)((LPBYTE)relay_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
+#else
     int64_t jmpDst = (int64_t)((LPBYTE)detour_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
-    bool shouldJmpAbs = jmpDst > INT_MAX || jmpDst < INT_MIN;
-    if (shouldJmpAbs)
-        patchedSize_ = sizeof(JmpAbs);
-    else
+#endif
         patchedSize_ = sizeof(JmpRel);
 
     if (patchAbove_)
     {
-        if (shouldJmpAbs)
-            (LPBYTE)patchedPos_ -= sizeof(JmpAbs);
-        else
-            (LPBYTE)patchedPos_ -= sizeof(JmpRel);
-
+        (LPBYTE)patchedPos_ -= sizeof(JmpRel);
         patchedSize_ += sizeof(JmpRelShort);
     }
 
     // backup patched bytes
     Memory::Copy((LPVOID)backup_, (LPBYTE)patchedPos_, patchedSize_);
 
-    if (shouldJmpAbs)
-    {
-        JmpAbs* pJmp = (JmpAbs*)patchedPos_;
-        // uint32_t jmpDst = (uint32_t)((LPBYTE)detour_ - (pPatchTarget + sizeof(JmpRel)));
-        Memory::Patch(&pJmp->opcode0, (BYTE)0xFF);
-        Memory::Patch(&pJmp->opcode1, (BYTE)0x25);
-        Memory::Patch(&pJmp->dummy, (uint32_t)0x00000000);
-        Memory::Patch(&pJmp->address, (uint64_t)detour_);
-    } 
-    else {
-        JmpRel* pJmp = (JmpRel*)patchedPos_;
-        Memory::Patch(&pJmp->opcode, (BYTE)0xE9);
-        Memory::Patch(&pJmp->operand, (uint32_t)jmpDst);
-    }
+    JmpRel* pJmp = (JmpRel*)patchedPos_;
+    Memory::Patch(&pJmp->opcode, (BYTE)0xE9);
+    Memory::Patch(&pJmp->operand, (uint32_t)jmpDst);
 
     if (patchAbove_)
     {
@@ -337,7 +324,8 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
 bool Trampoline::Disable() noexcept
 {
     Memory::Patch((LPVOID)patchedPos_, (LPBYTE)backup_, patchedSize_);
-	return true;
+    enabled_ = false;
+    return true;
 }
 
 _END_WINHOOKUPP_NM_
