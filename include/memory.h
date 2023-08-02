@@ -81,9 +81,9 @@ public:
 	}
 
 	template<typename T>
-	static VOID Patch(uintptr_t address, T data) noexcept
+	static VOID Patch(LPVOID address, T data) noexcept
 	{
-		Patch(address, &data, sizeof(T));
+		Patch(address, (LPBYTE)&data, sizeof(T));
 	}
 
 	static bool IsExecutableAddress(LPVOID pAddress) noexcept;

@@ -22,13 +22,16 @@ private:
 #if defined(_M_X64) || defined(__x86_64__)
     LPVOID relay_;          // [Out] Address of the relay function.
 #endif
-    bool   patchAbove_;      // [Out] Should use the hot patch area?
+    bool   patchAbove_{ false };      // [Out] Should use the hot patch area?
     size_t   nIP_;             // [Out] Number of the instruction boundaries.
     uint8_t  oldIPs_[8];       // [Out] Instruction boundaries of the target function.
     uint8_t  newIPs_[8];       // [Out] Instruction boundaries of the trampoline function.
 
     bool queueEnable_{ false };
-    uint8_t backup_[8];
+    uint8_t backup_[32];
+    LPBYTE patchedPos_;
+    size_t patchedSize_;
+    
 };
 
 _END_WINHOOKUPP_NM_

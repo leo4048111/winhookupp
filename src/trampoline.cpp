@@ -23,7 +23,7 @@ typedef hde32s HDE;
 #define TRAMPOLINE_MAX_SIZE MEMORY_SLOT_SIZE
 #endif
 
-#ifndef ARRAYSIZE
+#ifndef ARRAYSIZECreateTrampolineFunction
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 #endif
 
@@ -285,20 +285,58 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
 
     enabled_ = false;
     queueEnable_ = false;
+
+    patchedPos_ = (LPBYTE)target_;
+    // check if detour is reachable within a 32-bit rel jmp
+    int64_t jmpDst = (int64_t)((LPBYTE)detour_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
+    bool shouldJmpAbs = jmpDst > INT_MAX || jmpDst < INT_MIN;
+    if (shouldJmpAbs)
+        patchedSize_ = sizeof(JmpAbs);
+    else
+        patchedSize_ = sizeof(JmpRel);
+
     if (patchAbove_)
     {
-        Memory::Copy((LPVOID)backup_, (LPBYTE)target_ - sizeof(JmpRel), sizeof(JmpRel) + sizeof(JmpRelShort));
-    }
-    else
-    {
-        Memory::Copy((LPVOID)backup_, (LPBYTE)target_, sizeof(JmpRel));
+        if (shouldJmpAbs)
+            (LPBYTE)patchedPos_ -= sizeof(JmpAbs);
+        else
+            (LPBYTE)patchedPos_ -= sizeof(JmpRel);
+
+        patchedSize_ += sizeof(JmpRelShort);
     }
 
+    // backup patched bytes
+    Memory::Copy((LPVOID)backup_, (LPBYTE)patchedPos_, patchedSize_);
+
+    if (shouldJmpAbs)
+    {
+        JmpAbs* pJmp = (JmpAbs*)patchedPos_;
+        // uint32_t jmpDst = (uint32_t)((LPBYTE)detour_ - (pPatchTarget + sizeof(JmpRel)));
+        Memory::Patch(&pJmp->opcode0, (BYTE)0xFF);
+        Memory::Patch(&pJmp->opcode1, (BYTE)0x25);
+        Memory::Patch(&pJmp->dummy, (uint32_t)0x00000000);
+        Memory::Patch(&pJmp->address, (uint64_t)detour_);
+    } 
+    else {
+        JmpRel* pJmp = (JmpRel*)patchedPos_;
+        Memory::Patch(&pJmp->opcode, (BYTE)0xE9);
+        Memory::Patch(&pJmp->operand, (uint32_t)jmpDst);
+    }
+
+    if (patchAbove_)
+    {
+        JmpRelShort* pShortJmp = (JmpRelShort*)target_;
+        uint8_t shortJmpDst = (UINT8)(0 - (sizeof(JmpRelShort) + sizeof(JmpRel)));
+        Memory::Patch(&pShortJmp->opcode, (char)0xEB);
+        Memory::Patch(&pShortJmp->operand, shortJmpDst);
+    }
+    
 	return true;
 }
 
 bool Trampoline::Disable() noexcept
 {
+    Memory::Patch((LPVOID)patchedPos_, (LPBYTE)backup_, patchedSize_);
 	return true;
 }
 
