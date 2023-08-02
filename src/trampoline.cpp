@@ -269,18 +269,18 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     return true;
 }
 
-bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
+bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
-	// check if the target and detour address are executable
-	auto& mm = Memory::GetInstance();
-	if (!mm.IsExecutableAddress(target) || !mm.IsExecutableAddress(detour))
-		return false;
+    // check if the target and detour address are executable
+    auto& mm = Memory::GetInstance();
+    if (!mm.IsExecutableAddress(target) || !mm.IsExecutableAddress(detour))
+        return false;
 
-	trampoline_ = mm.AllocateBuffer(target);
-	if (!trampoline_) return false;
+    trampoline_ = mm.AllocateBuffer(target);
+    if (!trampoline_) return false;
 
-	target_ = target;
-	detour_ = detour;
+    target_ = target;
+    detour_ = detour;
     if (!CreateTrampolineFunction()) return false;
 
     enabled_ = false;
@@ -295,7 +295,7 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
 #else
     int64_t jmpDst = (int64_t)((LPBYTE)detour_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
 #endif
-        patchedSize_ = sizeof(JmpRel);
+    patchedSize_ = sizeof(JmpRel);
 
     if (patchAbove_)
     {
@@ -317,8 +317,11 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour) noexcept
         Memory::Patch(&pShortJmp->opcode, (char)0xEB);
         Memory::Patch(&pShortJmp->operand, shortJmpDst);
     }
-    
-	return true;
+
+    if (origin) *origin = trampoline_;
+
+    enabled_ = true;
+    return true;
 }
 
 bool Trampoline::Disable() noexcept

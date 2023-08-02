@@ -45,7 +45,7 @@ namespace
     }
 }
 
-bool Veh::Enable(LPVOID target, LPVOID detour) noexcept
+bool Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();
@@ -71,7 +71,9 @@ bool Veh::Enable(LPVOID target, LPVOID detour) noexcept
 
     if (!VirtualProtect((LPVOID)target_, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &old_protect_))
         return false;
-
+    
+    // TODO: implementation
+    if (origin) *origin = nullptr;
     enabled_ = true;
     return true;
 }

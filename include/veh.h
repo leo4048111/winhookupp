@@ -7,7 +7,7 @@ _START_WINHOOKUPP_NM_
 class Veh: public virtual Hook
 {
 public:
-    virtual bool Enable(LPVOID target, LPVOID detour) noexcept override;
+    virtual bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
 
     virtual bool Disable() noexcept override;
 
