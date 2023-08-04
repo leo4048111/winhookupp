@@ -1,9 +1,15 @@
+// Copyright 2023 leo4048111. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 #pragma once
 
 #include "defines.h"
 #include "hook.h"
 
 _START_WINHOOKUPP_NM_
+
+// Exception triggered by page guard violation
 class Veh: public virtual Hook
 {
 public:
