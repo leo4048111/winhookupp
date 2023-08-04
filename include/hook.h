@@ -6,7 +6,9 @@ class Hook
 {
 public:
     Hook() noexcept = default;
-    virtual ~Hook() noexcept = default;
+    virtual ~Hook() noexcept {
+        if (IsEnabled()) Disable();
+    };
 
 public:
     virtual bool Enable(
