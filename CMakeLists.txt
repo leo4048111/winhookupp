@@ -31,6 +31,10 @@ set(WINHOOKUPP_TESTS
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_trampoline.cpp
     )
 
+set(WINHOOKUPP_EXAMPLE
+    ${WINHOOKUPP_ROOT_DIR}/example/main.cpp
+    )
+
 include_directories(${WINHOOKUPP_INCLUDE_DIR} ${GOOGLETEST_INCLUDE_DIR})
 
 add_library(winhookupp STATIC ${WINHOOKUPP_SRC})
@@ -41,4 +45,12 @@ if(BUILD_TESTS)
     target_link_libraries(winhookupp_test winhookupp gtest)
 else()
     message("Disabled tests")
+endif()
+
+if(BUILD_EXAMPLE)
+    message("Enabled example")
+    add_executable(winhookupp_example ${WINHOOKUPP_EXAMPLE})
+    target_link_libraries(winhookupp_example winhookupp)
+else()
+    message("Disabled example")
 endif()
