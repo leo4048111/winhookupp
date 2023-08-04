@@ -9,11 +9,11 @@
 
 _START_WINHOOKUPP_NM_
 
-// Exception triggered by page guard violation
-class Veh: public virtual Hook
+// Exception triggered by int3
+class Int3Veh: public virtual Hook
 {
 public:
-    virtual ~Veh() noexcept override {
+    virtual ~Int3Veh() noexcept override {
         if (IsEnabled()) Disable();
     }
 

@@ -19,6 +19,7 @@ set(WINHOOKUPP_SRC
     ${WINHOOKUPP_SRC_DIR}/veh.cpp
     ${WINHOOKUPP_SRC_DIR}/trampoline.cpp
     ${WINHOOKUPP_SRC_DIR}/memory.cpp
+    ${WINHOOKUPP_SRC_DIR}/int3veh.cpp
     ${WINHOOKUPP_SRC_DIR}/hde/hde32.c
     ${WINHOOKUPP_SRC_DIR}/hde/hde64.c
 )
@@ -27,6 +28,7 @@ set(WINHOOKUPP_TESTS
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_main.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_memory.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_veh.cpp
+    ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_int3veh.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_instructions.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_trampoline.cpp
     )

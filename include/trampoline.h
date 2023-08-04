@@ -14,6 +14,10 @@ private:
 	bool CreateTrampolineFunction() noexcept;
 
 public:
+    virtual ~Trampoline() noexcept override {
+        if (IsEnabled()) Disable();
+    }
+
     virtual bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
 
     virtual bool Disable() noexcept override;
