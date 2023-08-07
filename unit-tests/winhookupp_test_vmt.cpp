@@ -66,13 +66,28 @@ TEST(winhookupp_test, winhookupp_test_vmt)
 
     DummyBase* pDummy = &derived;
 
-    // could possibly be a vcall thunk
+    // passing a vcall thunk addr as target test
     auto x = &DummyDerived::DummyTarget;
     LPVOID target = (LPVOID&)x;
 
     ASSERT_EQ(pDummy->DummyTarget(), true);
     ASSERT_EQ(vmt.Enable(target, &::DetouredTarget, pDummy, &origin), true);
     ASSERT_EQ(pDummy->DummyTarget(), false);
+
+    //// calling the origin
+    //decltype(DummyDerived::DummyTarget) pFunc = (decltype(DummyDerived::DummyTarget))origin;
+    //ASSERT_EQ(pFunc(pDummy), true);
+
     ASSERT_EQ(vmt.Disable(), true);
     ASSERT_EQ(pDummy->DummyTarget(), true);
+
+    // passing a virtual method addr as target test
+    constexpr size_t index = 1; // DummyTarget2
+    target = (LPVOID)(*reinterpret_cast<uintptr_t**>(pDummy))[index];
+
+    ASSERT_EQ(pDummy->DummyTarget2(), true);
+    ASSERT_EQ(vmt.Enable(target, &::DetouredTarget, pDummy, &origin), true);
+    ASSERT_EQ(pDummy->DummyTarget2(), false);
+    ASSERT_EQ(vmt.Disable(), true);
+    ASSERT_EQ(pDummy->DummyTarget2(), true);
 }

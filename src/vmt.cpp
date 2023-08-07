@@ -62,20 +62,20 @@ bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noex
     } while (true);
 
     // target is not a vcall thunk, directly patch vtable bytes
-
     disp_ = 0;
     for (;;)
     {
         uintptr_t patchPos = (uintptr_t)vtabel_ + disp_;
+        uintptr_t funcAddr = Memory::Read<uintptr_t>((LPVOID)patchPos);
 
-        if (!mm.IsExecutableAddress((LPVOID)patchPos)) return false;
+        if (!mm.IsExecutableAddress((LPVOID)funcAddr))return false;
 
-        if (patchPos == (uintptr_t)target)
+        if (funcAddr == (uintptr_t)target)
         {
-			origin_ = Memory::Read<LPVOID>((LPVOID)patchPos);
-			Memory::Patch((LPVOID)patchPos, detour_);
-			goto end;
-		}
+            origin_ = (LPVOID)funcAddr;
+            Memory::Patch((LPVOID)patchPos, detour_);
+            goto end;
+        }
 
         disp_ += sizeof(uintptr_t);
     }
