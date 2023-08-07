@@ -6,7 +6,7 @@ project(winhookupp)
 set(WINHOOKUPP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(WINHOOKUPP_SRC_DIR ${WINHOOKUPP_ROOT_DIR}/src)
 set(WINHOOKUPP_TESTS_DIR ${WINHOOKUPP_ROOT_DIR}/unit-tests)
-set(WINHOOKUPP_INCLUDE_DIR ${WINHOOKUPP_ROOT_DIR}/include)
+set(WINHOOKUPP_INCLUDE_DIR ${WINHOOKUPP_ROOT_DIR}/include ${WINHOOKUPP_SRC_DIR})
 
 ## --project configs --
 set(BUILD_TESTS ON CACHE BOOL "Build test programs")
@@ -20,6 +20,7 @@ set(WINHOOKUPP_SRC
     ${WINHOOKUPP_SRC_DIR}/trampoline.cpp
     ${WINHOOKUPP_SRC_DIR}/memory.cpp
     ${WINHOOKUPP_SRC_DIR}/int3veh.cpp
+    ${WINHOOKUPP_SRC_DIR}/vmt.cpp
     ${WINHOOKUPP_SRC_DIR}/hde/hde32.c
     ${WINHOOKUPP_SRC_DIR}/hde/hde64.c
 )
@@ -31,6 +32,7 @@ set(WINHOOKUPP_TESTS
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_int3veh.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_instructions.cpp
     ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_trampoline.cpp
+    ${WINHOOKUPP_TESTS_DIR}/winhookupp_test_vmt.cpp
     )
 
 set(WINHOOKUPP_EXAMPLE

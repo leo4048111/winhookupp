@@ -5,16 +5,6 @@
 #include "trampoline.h"
 #include "defines.h"
 
-#if defined(_M_X64) || defined(__x86_64__)
-#include "hde/hde64.h"
-typedef hde64s HDE;
-#define HDE_DISASM(code, hs) hde64_disasm(code, hs)
-#else
-#include "hde/hde32.h"
-typedef hde32s HDE;
-#define HDE_DISASM(code, hs) hde32_disasm(code, hs)
-#endif
-
 #include <Windows.h>
 
 #include "memory.h"
@@ -78,9 +68,9 @@ bool Trampoline::CreateTrampolineFunction() noexcept
 
     do
     {
-        HDE       hs;
-        UINT      copySize;
-        LPVOID    copySrc;
+        HDE hs;
+        size_t copySize;
+        LPVOID copySrc;
         uintptr_t oldInst = (uintptr_t)target_ + oldPos;
         uintptr_t newInst = (uintptr_t)trampoline_ + newPos;
 
