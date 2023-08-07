@@ -8,7 +8,7 @@ Hook implementation supports both internal and external(TODO) hooking.
 + **VEH hook:** Trigger exception with page guard violation, then intercept the exception with our VehHandler and change instruction pointer to detoured function.
 + **Trampoline hook:** Modifies opcode to jmp to hook and allocates a trampoline for jmp back.
 + **INT3VEH hook:** Alike VEH hook, except that exception is triggered by patching the first byte of target function to 0xCC(int 3)
-+ **VMT:** TODO
++ **VMT:** Find the right disp to target virtual method through disassembling vcall thunk bytes or traversing vtable, then patch vtable of a class to detoured function. ***(Warning: My Current implementation of vmt hook will probably not work if the target class has multiple inheritance. eg. class Derived : public Base1, public Base2;)***
 
 # Download this project
 ```
