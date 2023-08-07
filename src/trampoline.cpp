@@ -263,7 +263,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     return true;
 }
 
-bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noexcept
+bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();

@@ -17,7 +17,11 @@ public:
         if (IsEnabled()) Disable();
     }
 
-    virtual bool Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin = nullptr) noexcept override;
+private:
+    bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept;
+
+public:
+    virtual bool Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin = nullptr) noexcept;
 
     virtual bool Disable() noexcept override;
 
@@ -28,7 +32,7 @@ private:
     uintptr_t* vtabel_;
     uint8_t disp_;
     LPVOID origin_;
-
+    LPVOID inst_;
 };
 
 _END_WINHOOKUPP_NM_

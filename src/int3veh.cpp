@@ -55,7 +55,7 @@ namespace
     }
 }
 
-bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noexcept
+bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     if (IsEnabled()) return false;
 

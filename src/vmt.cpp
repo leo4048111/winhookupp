@@ -12,9 +12,14 @@ _START_WINHOOKUPP_NM_
 
 bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noexcept
 {
-    if (IsEnabled()) return false;
-
     if (inst == nullptr) return false;
+    inst_ = inst;
+    return Enable(target, detour, origin);
+}
+
+bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
+{
+    if (IsEnabled()) return false;
 
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();
@@ -25,7 +30,7 @@ bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noex
     detour_ = detour;
 
     // TODO: support multiple inheritance
-    vtabel_ = *reinterpret_cast<uintptr_t**>(inst);
+    vtabel_ = *reinterpret_cast<uintptr_t**>(inst_);
 
     // check if target is a vcall thunk
     do {

@@ -16,7 +16,6 @@ public:
     virtual bool Enable(
         _In_ LPVOID target,   // target function
         _In_ LPVOID detour,   // detour function, will be called instead of target after enabling hook
-        _In_opt_ LPVOID inst = nullptr, // this param is only used by Vmt
         _Out_ LPVOID *origin = nullptr) noexcept = 0;
 
     virtual bool Disable() noexcept = 0;
