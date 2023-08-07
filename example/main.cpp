@@ -7,6 +7,7 @@
 
 #include "veh.h"
 #include "trampoline.h"
+#include "vmt.h"
 
 // implementation of your detour function
 namespace {
@@ -20,14 +21,47 @@ namespace {
         printf("Detoured WriteConsole() is called...\n");
         return false;
     }
+       
+    class DummyBase {
+    public:
+        virtual DECLSPEC_NOINLINE bool DummyTarget() noexcept {
+            ::std::cout << "DummyBase::DummyTarget() is called..." << ::std::endl;
+            return true;
+        }
+
+        virtual DECLSPEC_NOINLINE bool DummyTarget2() noexcept {
+            ::std::cout << "DummyBase::DummyTarget2() is called..." << ::std::endl;
+            return true;
+        }
+    };
+
+    class DummyDerived : public DummyBase {
+    public:
+        virtual DECLSPEC_NOINLINE bool DummyTarget() noexcept override {
+			::std::cout << "DummyDerived::DummyTarget() is called..." << ::std::endl;
+			return true;
+		}
+
+        virtual DECLSPEC_NOINLINE bool DummyTarget2() noexcept override {
+            ::std::cout << "DummyDerived::DummyTarget2() is called..." << ::std::endl;
+            return true;
+        }
+    };
+
+    DECLSPEC_NOINLINE bool DetouredDummyTarget() noexcept {
+		::std::cout << "DetouredDummyTarget() is called..." << ::std::endl;
+		return false;
+	}
 }
 
 int main(int argc, char** argv) {
     using namespace WINHOOKUPP_NM;
 
+    bool result = true;
+
     // veh hooking
     Veh veh;
-    veh.Enable(&WriteConsole, &DetouredWriteConsole);
+    result = veh.Enable(&WriteConsole, &DetouredWriteConsole);
 
     // calling detoured function
     HANDLE hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -40,13 +74,13 @@ int main(int argc, char** argv) {
     // not possible in veh hooking
 
     // restore hook
-    veh.Disable();
+    result = veh.Disable();
 
     // trampoline hooking
     Trampoline trampoline;
     using WriteConsole_t = decltype(WriteConsole);
     LPVOID origin;
-    trampoline.Enable(&WriteConsole, &DetouredWriteConsole, &origin);
+    result = trampoline.Enable(&WriteConsole, &DetouredWriteConsole, &origin);
 
     // calling detoured function
     WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr);
@@ -56,7 +90,40 @@ int main(int argc, char** argv) {
     pOrigin(hConsoleOutput, buf, len, &dwChars, nullptr);
 
     // restore hook
-    trampoline.Disable();
+    result = trampoline.Disable();
+
+    // vmt hooking, passing &classname::vmethod or address to virtual method as target are both acceptable
+    Vmt vmt;
+    DummyDerived dummy;
+    DummyBase* pDummy = &dummy;
     
+    // passing &classname::vmethod as target(which is very likely not the real address of
+    // the virtual method, but the address of the vcall thunk)
+    auto x = &DummyDerived::DummyTarget2;
+    LPVOID target = *reinterpret_cast<LPVOID*&>(x);
+    origin = nullptr;
+
+    // a pointer to instance is required for vmt hooks
+    result = vmt.Enable(target, &::DetouredDummyTarget, pDummy, &origin);
+
+    // calling detoured function
+    pDummy->DummyTarget2();
+
+    //restore hook
+    vmt.Disable();
+
+    // passing real address of the virtual method as target
+    constexpr size_t index = 1;
+    target = (LPVOID)((uintptr_t)pDummy + index * sizeof(uintptr_t));
+
+    // a pointer to instance is required for vmt hooks
+    result = vmt.Enable(target, &::DetouredDummyTarget, pDummy, &origin);
+
+    // calling detoured function
+    pDummy->DummyTarget2();
+
+    //restore hook
+    vmt.Disable();
+
     return 0;
 }
