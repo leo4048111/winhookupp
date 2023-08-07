@@ -30,7 +30,7 @@ namespace
 #endif
         switch (exception_pointers->ExceptionRecord->ExceptionCode)
         {
-        case STATUS_GUARD_PAGE_VIOLATION:
+        case EXCEPTION_BREAKPOINT:
         {
             ::std::lock_guard<::std::mutex> lock(g_mutex);
             if (g_active_veh_hooks.find(ip) != g_active_veh_hooks.end())
@@ -46,10 +46,6 @@ namespace
         }
         case STATUS_SINGLE_STEP:
         {
-            DWORD dwOldProtect;
-            for (auto& hook : g_active_veh_hooks)
-                VirtualProtect((LPVOID)hook.first, 1, PAGE_EXECUTE_READ | PAGE_GUARD, &dwOldProtect);
-
             return EXCEPTION_CONTINUE_EXECUTION; // Continue the next instruction
         }
         default:
@@ -60,6 +56,8 @@ namespace
 
 bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
+    if (IsEnabled()) return false;
+
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();
     if (!mm.IsExecutableAddress(target) || !mm.IsExecutableAddress(detour))
@@ -74,9 +72,10 @@ bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
             return false;
 
         g_active_veh_hooks.insert({ (uintptr_t)target_, (uintptr_t)detour_ });
-        BYTE patched = *(BYTE*)target_;
+        targetPatchPos_ = target_;
+        BYTE patched = *(BYTE*)targetPatchPos_;
         g_patched_bytes.insert({ (uintptr_t)target_, patched });
-        Memory::Patch(target_, (BYTE)0xCC);
+        Memory::Patch(targetPatchPos_, (BYTE)0xCC);
     }
 
     if (!g_veh_hook_installed)
@@ -94,6 +93,8 @@ bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 
 bool Int3Veh::Disable() noexcept
 {
+    if (!IsEnabled()) return false;
+
     bool should_remove_veh = false;
     {
         ::std::lock_guard<::std::mutex> lock(g_mutex);
@@ -104,7 +105,7 @@ bool Int3Veh::Disable() noexcept
         should_remove_veh = g_active_veh_hooks.empty();
 
         BYTE patched = g_patched_bytes[(uintptr_t)target_];
-        Memory::Patch(target_, patched);
+        Memory::Patch(targetPatchPos_, patched);
     }
 
     if (should_remove_veh)
@@ -112,14 +113,14 @@ bool Int3Veh::Disable() noexcept
         if (!RemoveVectoredExceptionHandler(g_hVeh))
             return false;
 
+        g_hVeh = nullptr;
         g_veh_hook_installed = false;
     }
 
-    DWORD foo;
-    if (!VirtualProtect((LPVOID)target_, 1, old_protect_, &foo))
-        return false;
-
     enabled_ = false;
+    target_ = nullptr;
+    detour_ = nullptr;
+    targetPatchPos_ = nullptr;
     return true;
 }
 

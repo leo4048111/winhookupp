@@ -22,9 +22,10 @@ public:
     virtual bool Disable() noexcept override;
 
 private:
-    DWORD old_protect_;
     LPVOID target_;         // [In] Address of the target function.
     LPVOID detour_;         // [In] Address of the detour function.
+
+    LPVOID targetPatchPos_; 
 };
 
 _END_WINHOOKUPP_NM_
