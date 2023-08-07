@@ -71,6 +71,22 @@ private:
 	Memory& operator=(const Memory&&) = delete;
 
 public:
+	template<typename T>
+	static T Read(LPVOID src) noexcept
+	{
+		T data;
+		Read(&data, (LPBYTE)src, sizeof(T));
+		return data;
+	}
+
+	static VOID Read(LPVOID dst, LPBYTE src, size_t size) noexcept
+	{
+		DWORD oldProtect;
+		VirtualProtect(src, size, PAGE_READWRITE, &oldProtect);
+		__movsb((LPBYTE)dst, (LPBYTE)src, size);
+		VirtualProtect(src, size, oldProtect, &oldProtect);
+	}
+
 	static VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
 	{
 		Patch(dst, src, size);
