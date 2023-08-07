@@ -27,7 +27,7 @@ typedef hde32s HDE;
 #define TRAMPOLINE_MAX_SIZE MEMORY_SLOT_SIZE
 #endif
 
-#ifndef ARRAYSIZECreateTrampolineFunction
+#ifndef ARRAYSIZE
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 #endif
 
@@ -273,7 +273,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     return true;
 }
 
-bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
+bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noexcept
 {
     // check if the target and detour address are executable
     auto& mm = Memory::GetInstance();

@@ -14,16 +14,18 @@ public:
 
 public:
     virtual bool Enable(
-        _In_  LPVOID target, 
-        _In_  LPVOID detour, 
-        _Out_  LPVOID* origin = nullptr) noexcept = 0;
+        _In_ LPVOID target,   // target function
+        _In_ LPVOID detour,   // detour function, will be called instead of target after enabling hook
+        _In_opt_ LPVOID inst = nullptr, // this param is only used by Vmt
+        _Out_ LPVOID *origin = nullptr) noexcept = 0;
 
     virtual bool Disable() noexcept = 0;
 
-    bool IsEnabled() const noexcept {
+    bool IsEnabled() const noexcept
+    {
         return enabled_;
     }
 
 protected:
-    bool enabled_{ false };
+    bool enabled_{false};
 };

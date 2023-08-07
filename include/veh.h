@@ -17,7 +17,7 @@ public:
         if (IsEnabled()) Disable();
     }
 
-    virtual bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
+    virtual bool Enable(LPVOID target, LPVOID detour, LPVOID inst = nullptr, LPVOID* origin = nullptr) noexcept override;
 
     virtual bool Disable() noexcept override;
 

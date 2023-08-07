@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include "memory.h"
+#include "instructions.h"
 
 _START_WINHOOKUPP_NM_
 
@@ -54,7 +55,7 @@ namespace
     }
 }
 
-bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
+bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin) noexcept
 {
     if (IsEnabled()) return false;
 
@@ -75,7 +76,7 @@ bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
         targetPatchPos_ = target_;
         BYTE patched = *(BYTE*)targetPatchPos_;
         g_patched_bytes.insert({ (uintptr_t)target_, patched });
-        Memory::Patch(targetPatchPos_, (BYTE)0xCC);
+        Memory::Patch(targetPatchPos_, Int3());
     }
 
     if (!g_veh_hook_installed)
