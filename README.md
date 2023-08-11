@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     tramp.Disable();
 }
 ```
-+ To enable external hooking interfaces, define WINHOOKUPP_EXTERNAL_USAGE before including winhookupp headers
++ To enable external hooking interfaces, define WINHOOKUPP_EXTERNAL_USAGE before including winhookupp headers(External hooks haven't been thoroughly tested yet, use with caution)
 ```cpp
 #define WINHOOKUPP_EXTERNAL_USAGE
 #include "trampoline.h"
