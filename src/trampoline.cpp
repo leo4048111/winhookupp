@@ -85,7 +85,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
 #ifdef WINHOOKUPP_EXTERNAL_USAGE
         mm.ReadEx((LPVOID)oldInst, oldInstBuffer, copyInstSize);
 #else
-        mm.Read((LPVOID)oldInst, oldInstBuffer, copyInstSize))
+        mm.Read((LPVOID)oldInst, oldInstBuffer, copyInstSize);
 #endif
 
         copySize = HDE_DISASM((LPVOID)oldInstBuffer, &hs);
