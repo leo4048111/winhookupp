@@ -96,7 +96,7 @@ public:
 	{
 		DWORD oldProtect;
 		VirtualProtectEx(hProcess_, src, size, PAGE_READWRITE, &oldProtect);
-		ReadProcessMemory(hProcess_, dst, src, size, nullptr);
+		ReadProcessMemory(hProcess_, src, dst, size, nullptr);
 		VirtualProtectEx(hProcess_, src, size, oldProtect, &oldProtect);
 	}
 
