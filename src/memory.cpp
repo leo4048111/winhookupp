@@ -13,28 +13,39 @@ Memory::~Memory() noexcept
 
 	while (head)
 	{
-		MemoryBlock *next = head->next;
+		MemoryBlock* next = nullptr;
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		next = ReadEx<MemoryBlock*>(&head->next);
+		VirtualFreeEx(hProcess_, head, 0, MEM_RELEASE);
+#else
+		next = head->next;
 		VirtualFree(head, 0, MEM_RELEASE);
+#endif
 		head = next;
 	}
 }
 
 LPVOID Memory::AllocateBuffer(LPVOID origin) noexcept
 {
-	MemorySlot *slot;
+	MemorySlot *slot = nullptr;
 	MemoryBlock *block = GetMemoryBlock(origin);
 	if (block == nullptr)
 		return NULL;
 
 	// Remove an unused slot from the list.
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+	slot = ReadEx<MemorySlot*>(&block->free);
+	MemorySlot* free = ReadEx<MemorySlot*>(&slot->next);
+	PatchEx(&block->free, free);
+	size_t oldSize = ReadEx<size_t>(&block->usedCount);
+	PatchEx(&block->usedCount, (size_t)(oldSize + 1));
+#else
 	slot = block->free;
 	block->free = slot->next;
 	block->usedCount++;
-
-#ifdef _DEBUG
-	// Fill the slot with INT3 for debugging.
-	memset(slot, 0xCC, sizeof(MemorySlot));
 #endif
+
 	return slot;
 }
 
@@ -49,31 +60,61 @@ VOID Memory::FreeBuffer(LPVOID buffer) noexcept
 		if ((uintptr_t)block == targetBlock)
 		{
 			MemorySlot *slot = (MemorySlot *)buffer;
-#ifdef _DEBUG
-			// Clear the released slot for debugging.
-			memset(slot, 0x00, sizeof(MemorySlot));
-#endif
+
 			// Restore the released slot to the list.
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+			MemorySlot* free = ReadEx<MemorySlot*>(&block->free);
+			PatchEx(&slot->next, free);
+			PatchEx(&block->free, slot);
+			size_t oldSize = ReadEx<size_t>(&block->usedCount);
+			PatchEx(&block->usedCount, (size_t)(oldSize - 1));
+#else
 			slot->next = block->free;
 			block->free = slot;
 			block->usedCount--;
+#endif
 
+			size_t useCount = 0;
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+			useCount = ReadEx<size_t>(&block->usedCount);
+#else
+			useCount = block->usedCount;
+#endif
 			// Free if unused.
-			if (block->usedCount == 0)
+			if (useCount == 0)
 			{
 				if (prevBlock)
+				{
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+					MemoryBlock* next = ReadEx<MemoryBlock*>(&block->next);
+					PatchEx(&prevBlock->next, next);
+#else
 					prevBlock->next = block->next;
+#endif
+				}
 				else
+				{
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+					memory_blocks_ = ReadEx<MemoryBlock*>(&block->next);
+#else
 					memory_blocks_ = block->next;
-
+#endif
+				}
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+				VirtualFreeEx(hProcess_, block, 0, MEM_RELEASE);
+#else
 				VirtualFree(block, 0, MEM_RELEASE);
+#endif
 			}
 
 			break;
 		}
-
 		prevBlock = block;
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		block = ReadEx<MemoryBlock*>(&block->next);
+#else
 		block = block->next;
+#endif
 	}
 }
 
@@ -91,7 +132,15 @@ LPVOID Memory::FindPrevFreeRegion(LPVOID address, LPVOID minAddr, DWORD dwAlloca
 	while (tryAddr >= (uintptr_t)minAddr)
 	{
 		MEMORY_BASIC_INFORMATION mbi;
-		if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
+		SIZE_T result = 0;
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		result = VirtualQueryEx(hProcess_, (LPVOID)tryAddr, &mbi, sizeof(mbi));
+#else
+		result = VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi));
+#endif
+
+		if (result == 0)
 			break;
 
 		if (mbi.State == MEM_FREE)
@@ -119,7 +168,16 @@ LPVOID Memory::FindNextFreeRegion(LPVOID address, LPVOID maxAddr, DWORD dwAlloca
 	while (tryAddr <= (uintptr_t)maxAddr)
 	{
 		MEMORY_BASIC_INFORMATION mbi;
-		if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
+
+		SIZE_T result = 0;
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		result = VirtualQueryEx(hProcess_, (LPVOID)tryAddr, &mbi, sizeof(mbi));
+#else
+		result = VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi));
+#endif
+
+		if (result == 0)
 			break;
 
 		if (mbi.State == MEM_FREE)
@@ -138,7 +196,7 @@ LPVOID Memory::FindNextFreeRegion(LPVOID address, LPVOID maxAddr, DWORD dwAlloca
 
 Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 {
-	MemoryBlock *block;
+	MemoryBlock *block = memory_blocks_;
 #if defined(_M_X64) || defined(__x86_64__)
 	uintptr_t minAddr;
 	uintptr_t maxAddr;
@@ -160,16 +218,30 @@ Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 #endif
 
 	// Look the registered blocks for a reachable one.
-	for (block = memory_blocks_; block != NULL; block = block->next)
+	for (;;)
 	{
+		if (block == nullptr) break;
+
 #if defined(_M_X64) || defined(__x86_64__)
 		// Ignore the blocks too far.
 		if ((uintptr_t)block < minAddr || (uintptr_t)block >= maxAddr)
 			continue;
 #endif
 		// The block has at least one unused slot.
-		if (block->free)
+		MemorySlot* slot = nullptr;
+#ifndef WINHOOKUPP_EXTERNAL_USAGE
+		slot = block->free;
+#else
+		slot = ReadEx<MemorySlot*>(&block->free);
+#endif
+		if (slot)
 			return block;
+
+#ifndef WINHOOKUPP_EXTERNAL_USAGE
+		block = block->next;
+#else
+		block = ReadEx<MemoryBlock*>(&block->next);
+#endif
 	}
 
 #if defined(_M_X64) || defined(__x86_64__)
@@ -182,8 +254,13 @@ Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 			if (alloc == NULL)
 				break;
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+			block = (MemoryBlock*)VirtualAllocEx(
+				hProcess_, alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
 			block = (MemoryBlock *)VirtualAlloc(
 				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#endif
 			if (block != NULL)
 				break;
 		}
@@ -199,32 +276,57 @@ Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 			if (alloc == NULL)
 				break;
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+			block = (MemoryBlock*)VirtualAllocEx(
+				hProcess_, alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
 			block = (MemoryBlock *)VirtualAlloc(
 				alloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#endif
 			if (block != NULL)
 				break;
 		}
 	}
 #else
 	// In x86 mode, a memory block can be placed anywhere.
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+	block = (MemoryBlock*)VirtualAllocEx(
+		hProcess_, NULL, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
 	block = (MemoryBlock *)VirtualAlloc(
 		NULL, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#endif
 #endif
 
 	if (block != NULL)
 	{
 		// Build a linked list of all the slots.
 		MemorySlot *slot = (MemorySlot *)block + 1;
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		PatchEx(&block->free, (MemorySlot*)NULL);
+		PatchEx(&block->usedCount, (size_t)0);
+#else
 		block->free = NULL;
 		block->usedCount = 0;
+#endif
 		do
 		{
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+			MemorySlot* free = ReadEx<MemorySlot*>(&block->free);
+			PatchEx(&slot->next, free);
+			PatchEx(&block->free, slot);
+#else
 			slot->next = block->free;
 			block->free = slot;
+#endif
 			slot++;
 		} while ((uintptr_t)slot - (uintptr_t)block <= MEMORY_BLOCK_SIZE - MEMORY_SLOT_SIZE);
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		PatchEx(&block->next, memory_blocks_);
+#else
 		block->next = memory_blocks_;
+#endif
 		memory_blocks_ = block;
 	}
 
@@ -234,7 +336,13 @@ Memory::MemoryBlock *Memory::GetMemoryBlock(LPVOID origin) noexcept
 bool Memory::IsExecutableAddress(LPVOID pAddress) noexcept
 {
 	MEMORY_BASIC_INFORMATION mi;
+	ZeroMemory(&mi, sizeof(mi));
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+	VirtualQueryEx(hProcess_, pAddress, &mi, sizeof(mi));
+#else
 	VirtualQuery(pAddress, &mi, sizeof(mi));
+#endif
 
 	return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
 }
@@ -242,13 +350,28 @@ bool Memory::IsExecutableAddress(LPVOID pAddress) noexcept
 bool Memory::IsCodePadding(LPBYTE pInst, size_t size) noexcept
 {
 	size_t i;
+	BYTE byte;
 
-	if (pInst[0] != 0x00 && pInst[0] != 0x90 && pInst[0] != 0xCC)
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+	byte = ReadEx<BYTE>(&pInst[0]);
+#else
+	byte = Read<BYTE>(&pInst[0]);
+#endif
+
+	if (byte != 0x00 && byte != 0x90 && byte != 0xCC)
 		return false;
 
 	for (i = 1; i < size; ++i)
 	{
-		if (pInst[i] != pInst[0])
+		BYTE curByte;
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+		curByte = ReadEx<BYTE>(&pInst[i]);
+#else
+		curByte = Read<BYTE>(&pInst[i]);
+#endif
+
+		if (curByte != byte)
 			return false;
 	}
 	return true;

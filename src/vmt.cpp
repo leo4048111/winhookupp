@@ -60,9 +60,9 @@ bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
         disp_ = (copySize == 2) ? 0x00 : hs.disp.disp8;
 
         uintptr_t patchPos = (uintptr_t)vtabel_ + disp_;
-        origin_ = Memory::Read<LPVOID>((LPVOID)patchPos);
+        origin_ = mm.Read<LPVOID>((LPVOID)patchPos);
 
-        Memory::Patch((LPVOID)patchPos, detour_);
+        mm.Patch((LPVOID)patchPos, detour_);
         goto end;
     } while (true);
 
@@ -71,14 +71,14 @@ bool Vmt::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
     for (;;)
     {
         uintptr_t patchPos = (uintptr_t)vtabel_ + disp_;
-        uintptr_t funcAddr = Memory::Read<uintptr_t>((LPVOID)patchPos);
+        uintptr_t funcAddr = mm.Read<uintptr_t>((LPVOID)patchPos);
 
         if (!mm.IsExecutableAddress((LPVOID)funcAddr))return false;
 
         if (funcAddr == (uintptr_t)target)
         {
             origin_ = (LPVOID)funcAddr;
-            Memory::Patch((LPVOID)patchPos, detour_);
+            mm.Patch((LPVOID)patchPos, detour_);
             goto end;
         }
 
@@ -95,8 +95,10 @@ bool Vmt::Disable() noexcept
 {
     if(!IsEnabled()) return false;
 
+    auto& mm = Memory::GetInstance();
+
     uintptr_t patchPos = (uintptr_t)vtabel_ + disp_;
-    Memory::Patch((LPVOID)patchPos, origin_);
+    mm.Patch((LPVOID)patchPos, origin_);
 
     disp_ = 0;
     origin_ = nullptr;

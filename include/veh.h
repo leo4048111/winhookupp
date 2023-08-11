@@ -13,13 +13,26 @@ _START_WINHOOKUPP_NM_
 class Veh: public virtual Hook
 {
 public:
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual ~Veh() noexcept override {
+        if (IsEnabled()) DisableEx();
+    }
+#else
     virtual ~Veh() noexcept override {
         if (IsEnabled()) Disable();
     }
+#endif
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual bool EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
+
+    virtual bool DisableEx() noexcept override;
+#else
     virtual bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
 
     virtual bool Disable() noexcept override;
+#endif
 
 private:
     DWORD old_protect_;

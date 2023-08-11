@@ -55,6 +55,17 @@ namespace
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+bool Int3Veh::EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept 
+{
+    return false;
+}
+
+bool Int3Veh::DisableEx() noexcept 
+{
+    return false;
+}
+#else
 bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     if (IsEnabled()) return false;
@@ -76,12 +87,13 @@ bool Int3Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
         targetPatchPos_ = target_;
         BYTE patched = *(BYTE*)targetPatchPos_;
         g_patched_bytes.insert({ (uintptr_t)target_, patched });
-        Memory::Patch(targetPatchPos_, Int3());
+        mm.Patch(targetPatchPos_, Int3());
     }
 
     if (!g_veh_hook_installed)
     {
         g_hVeh = AddVectoredExceptionHandler(true, VehHandler);
+
         g_veh_hook_installed = true;
     }
 
@@ -96,6 +108,8 @@ bool Int3Veh::Disable() noexcept
 {
     if (!IsEnabled()) return false;
 
+    auto& mm = Memory::GetInstance();
+
     bool should_remove_veh = false;
     {
         ::std::lock_guard<::std::mutex> lock(g_mutex);
@@ -106,7 +120,7 @@ bool Int3Veh::Disable() noexcept
         should_remove_veh = g_active_veh_hooks.empty();
 
         BYTE patched = g_patched_bytes[(uintptr_t)target_];
-        Memory::Patch(targetPatchPos_, patched);
+        mm.Patch(targetPatchPos_, patched);
     }
 
     if (should_remove_veh)
@@ -124,5 +138,6 @@ bool Int3Veh::Disable() noexcept
     targetPatchPos_ = nullptr;
     return true;
 }
+#endif
 
 _END_WINHOOKUPP_NM_

@@ -53,16 +53,28 @@ public:
 	} MemoryBlock;
 
 public:
+#ifndef WINHOOKUPP_EXTERNAL_USAGE
 	static Memory& GetInstance() noexcept
 	{
 		static Memory inst;
 		return inst;
 	}
-
+#else 
+	static Memory& GetInstance(HANDLE hProcess) noexcept
+	{
+		static Memory inst(hProcess);
+		return inst;
+	}
+#endif
 	~Memory();
 
 private:
+#ifndef WINHOOKUPP_EXTERNAL_USAGE
 	Memory() = default;
+#else 
+	Memory() = delete;
+	Memory(HANDLE hProcess) noexcept : hProcess_(hProcess) {};
+#endif
 	// no copy
 	Memory(const Memory&) = delete;
 	Memory& operator=(const Memory&) = delete;
@@ -71,15 +83,16 @@ private:
 	Memory& operator=(const Memory&&) = delete;
 
 public:
+#ifndef WINHOOKUPP_EXTERNAL_USAGE
 	template<typename T>
-	static T Read(LPVOID src) noexcept
+	T Read(LPVOID src) noexcept
 	{
 		T data;
 		Read(&data, (LPBYTE)src, sizeof(T));
 		return data;
 	}
 
-	static VOID Read(LPVOID dst, LPBYTE src, size_t size) noexcept
+	VOID Read(LPVOID dst, LPBYTE src, size_t size) noexcept
 	{
 		DWORD oldProtect;
 		VirtualProtect(src, size, PAGE_READWRITE, &oldProtect);
@@ -87,12 +100,12 @@ public:
 		VirtualProtect(src, size, oldProtect, &oldProtect);
 	}
 
-	static VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
+	VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
 	{
 		Patch(dst, src, size);
 	}
 
-	static VOID Patch(LPVOID address, LPBYTE data, size_t size) noexcept
+	VOID Patch(LPVOID address, LPBYTE data, size_t size) noexcept
 	{
 		DWORD oldProtect;
 		VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
@@ -101,14 +114,50 @@ public:
 	}
 
 	template<typename T>
-	static VOID Patch(LPVOID address, T data) noexcept
+	VOID Patch(LPVOID address, T data) noexcept
 	{
 		Patch(address, (LPBYTE)&data, sizeof(T));
 	}
+#else 
+	template<typename T>
+	T ReadEx(LPVOID src) noexcept
+	{
+		T data;
+		ReadEx(&data, src, sizeof(T));
+		return data;
+	}
 
-	static bool IsExecutableAddress(LPVOID pAddress) noexcept;
+	VOID ReadEx(LPVOID dst, LPVOID src, size_t size) noexcept
+	{
+		DWORD oldProtect;
+		VirtualProtectEx(hProcess_, src, size, PAGE_READWRITE, &oldProtect);
+		ReadProcessMemory(hProcess_, dst, src, size, nullptr);
+		VirtualProtectEx(hProcess_, src, size, oldProtect, &oldProtect);
+	}
 
-	static bool IsCodePadding(LPBYTE pInst, size_t size) noexcept;
+	VOID CopyEx(LPVOID dst, LPBYTE src, size_t size) noexcept
+	{
+		ReadEx(dst, src, size);
+	}
+
+	VOID PatchEx(LPVOID address, LPBYTE data, size_t size) noexcept
+	{
+		DWORD oldProtect;
+		VirtualProtectEx(hProcess_, address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+		WriteProcessMemory(hProcess_, (LPBYTE)address, (LPBYTE)data, size, nullptr);
+		VirtualProtectEx(hProcess_, address, size, oldProtect, &oldProtect);
+	}
+
+	template<typename T>
+	VOID PatchEx(LPVOID address, T data) noexcept
+	{
+		PatchEx(address, (LPBYTE)&data, sizeof(T));
+	}
+#endif
+
+	bool IsExecutableAddress(LPVOID pAddress) noexcept;
+
+	bool IsCodePadding(LPBYTE pInst, size_t size) noexcept;
 
 	LPVOID AllocateBuffer(LPVOID origin) noexcept;
 
@@ -125,6 +174,10 @@ private:
 
 private:
 	MemoryBlock* memory_blocks_{ nullptr };
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+	HANDLE hProcess_{ nullptr };
+#endif	
 };
 
 _END_WINHOOKUPP_NM_

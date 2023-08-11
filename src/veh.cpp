@@ -57,6 +57,17 @@ namespace
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+bool Veh::EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept
+{
+    return false;
+}
+
+bool Veh::DisableEx() noexcept
+{
+    return false;
+}
+#else
 bool Veh::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     // check if the target and detour address are executable
@@ -117,5 +128,6 @@ bool Veh::Disable() noexcept
     enabled_ = false;
     return true;
 }
+#endif
 
 _END_WINHOOKUPP_NM_

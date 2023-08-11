@@ -66,6 +66,8 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     patchAbove_ = false;
     nIP_ = 0;
 
+    auto& mm = Memory::GetInstance();
+
     do
     {
         HDE hs;
@@ -103,7 +105,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
 
             // Avoid using memcpy to reduce the footprint.
 
-            Memory::Copy((LPVOID)instBuf, (LPBYTE)oldInst, copySize);
+            mm.Copy((LPVOID)instBuf, (LPBYTE)oldInst, copySize);
 
             copySrc = instBuf;
 
@@ -233,20 +235,20 @@ bool Trampoline::CreateTrampolineFunction() noexcept
 
     // Is there enough place for a long jump?
     if (oldPos < sizeof(JmpRel)
-        && !Memory::IsCodePadding((LPBYTE)target_ + oldPos, sizeof(JmpRel) - oldPos))
+        && !mm.IsCodePadding((LPBYTE)target_ + oldPos, sizeof(JmpRel) - oldPos))
     {
         // Is there enough place for a short jump?
         if (oldPos < sizeof(JmpRelShort)
-            && !Memory::IsCodePadding((LPBYTE)target_ + oldPos, sizeof(JmpRelShort) - oldPos))
+            && !mm.IsCodePadding((LPBYTE)target_ + oldPos, sizeof(JmpRelShort) - oldPos))
         {
             return false;
         }
 
         // Can we place the long jump above the function?
-        if (!Memory::IsExecutableAddress((LPBYTE)target_ - sizeof(JmpRel)))
+        if (!mm.IsExecutableAddress((LPBYTE)target_ - sizeof(JmpRel)))
             return false;
 
-        if (!Memory::IsCodePadding((LPBYTE)target_ - sizeof(JmpRel), sizeof(JmpRel)))
+        if (!mm.IsCodePadding((LPBYTE)target_ - sizeof(JmpRel), sizeof(JmpRel)))
             return false;
 
         patchAbove_ = true;
@@ -257,7 +259,7 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     jmp.address = (uintptr_t)detour_;
 
     relay_ = (LPBYTE)trampoline_ + newPos;
-    Memory::Copy((LPVOID)relay_, (LPBYTE)& jmp, sizeof(jmp));
+    mm.Copy((LPVOID)relay_, (LPBYTE)& jmp, sizeof(jmp));
 #endif
 
     return true;
@@ -298,18 +300,18 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
     }
 
     // backup patched bytes
-    Memory::Copy((LPVOID)backup_, (LPBYTE)patchedPos_, patchedSize_);
+    mm.Copy((LPVOID)backup_, (LPBYTE)patchedPos_, patchedSize_);
 
     JmpRel* pJmp = (JmpRel*)patchedPos_;
-    Memory::Patch(&pJmp->opcode, (BYTE)0xE9);
-    Memory::Patch(&pJmp->operand, (uint32_t)jmpDst);
+    mm.Patch(&pJmp->opcode, (BYTE)0xE9);
+    mm.Patch(&pJmp->operand, (uint32_t)jmpDst);
 
     if (patchAbove_)
     {
         JmpRelShort* pShortJmp = (JmpRelShort*)target_;
         uint8_t shortJmpDst = (UINT8)(0 - (sizeof(JmpRelShort) + sizeof(JmpRel)));
-        Memory::Patch(&pShortJmp->opcode, (char)0xEB);
-        Memory::Patch(&pShortJmp->operand, shortJmpDst);
+        mm.Patch(&pShortJmp->opcode, (char)0xEB);
+        mm.Patch(&pShortJmp->operand, shortJmpDst);
     }
 
     if (origin) *origin = trampoline_;
@@ -320,7 +322,8 @@ bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 
 bool Trampoline::Disable() noexcept
 {
-    Memory::Patch((LPVOID)patchedPos_, (LPBYTE)backup_, patchedSize_);
+    auto& mm = Memory::GetInstance();
+    mm.Patch((LPVOID)patchedPos_, (LPBYTE)backup_, patchedSize_);
     enabled_ = false;
     return true;
 }
