@@ -1,7 +1,7 @@
 # winhookupp
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-A cpp multi-method API internal/external Hooking library for x86/x86-64 Windows, basically simple class wrappers and interfaces for hooking methods which i pasted from various sources.
+A cpp multi-method API internal/external Hooking library for x86/x86-64 Windows.
 
 # Supported hooking methods
 Hook implementation supports both internal and external(TODO) hooking. 
@@ -9,6 +9,7 @@ Hook implementation supports both internal and external(TODO) hooking.
 + **Trampoline hook:** Modifies opcode to jmp to hook and allocates a trampoline for jmp back.
 + **INT3VEH hook:** Alike VEH hook, except that exception is triggered by patching the first byte of target function to 0xCC(int 3)
 + **VMT:** Find the right disp to target virtual method through disassembling vcall thunk bytes or traversing vtable, then patch vtable of a class to detoured function. ***(Warning: My Current implementation of vmt hook will probably not work if the target class has multiple inheritance. eg. class Derived : public Base1, public Base2;)***
++ **IAT:** TODO
 
 # Download this project
 ```
@@ -51,6 +52,21 @@ int main(int argc, char** argv) {
 
     // disabling hooking(note that hook will be automatically disabled if the hook instance is deconstructed)
     tramp.Disable();
+}
+```
++ To enable external hooking interfaces, define WINHOOKUPP_EXTERNAL_USAGE before including winhookupp headers
+```cpp
+#define WINHOOKUPP_EXTERNAL_USAGE
+#include "trampoline.h"
+
+int main(int argc, char** argv) {
+    using namespace WINHOOKUPP_NM;
+    // To enable remote hooks, you need to pass in a handle to remote process
+    HANDLE hProc = ...;
+    Tramp tramp;
+    tramp.EnableEx(hProc, &TargetFunction, &YourDetouredFunction, &origin);
+
+    ...
 }
 ```
 + See example and unit-tests for more detailed usages.
