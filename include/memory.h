@@ -53,27 +53,27 @@ public:
 	} MemoryBlock;
 
 public:
-#ifndef WINHOOKUPP_EXTERNAL_USAGE
-	static Memory& GetInstance() noexcept
-	{
-		static Memory inst;
-		return inst;
-	}
-#else 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
 	static Memory& GetInstance(HANDLE hProcess) noexcept
 	{
 		static Memory inst(hProcess);
+		return inst;
+	}
+#else 
+	static Memory& GetInstance() noexcept
+	{
+		static Memory inst;
 		return inst;
 	}
 #endif
 	~Memory();
 
 private:
-#ifndef WINHOOKUPP_EXTERNAL_USAGE
-	Memory() = default;
-#else 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
 	Memory() = delete;
 	Memory(HANDLE hProcess) noexcept : hProcess_(hProcess) {};
+#else 
+	Memory() = default;
 #endif
 	// no copy
 	Memory(const Memory&) = delete;
@@ -83,42 +83,7 @@ private:
 	Memory& operator=(const Memory&&) = delete;
 
 public:
-#ifndef WINHOOKUPP_EXTERNAL_USAGE
-	template<typename T>
-	T Read(LPVOID src) noexcept
-	{
-		T data;
-		Read(&data, (LPBYTE)src, sizeof(T));
-		return data;
-	}
-
-	VOID Read(LPVOID dst, LPBYTE src, size_t size) noexcept
-	{
-		DWORD oldProtect;
-		VirtualProtect(src, size, PAGE_READWRITE, &oldProtect);
-		__movsb((LPBYTE)dst, (LPBYTE)src, size);
-		VirtualProtect(src, size, oldProtect, &oldProtect);
-	}
-
-	VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
-	{
-		Patch(dst, src, size);
-	}
-
-	VOID Patch(LPVOID address, LPBYTE data, size_t size) noexcept
-	{
-		DWORD oldProtect;
-		VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
-		__movsb((LPBYTE)address, (LPBYTE)data, size);
-		VirtualProtect(address, size, oldProtect, &oldProtect);
-	}
-
-	template<typename T>
-	VOID Patch(LPVOID address, T data) noexcept
-	{
-		Patch(address, (LPBYTE)&data, sizeof(T));
-	}
-#else 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
 	template<typename T>
 	T ReadEx(LPVOID src) noexcept
 	{
@@ -152,6 +117,41 @@ public:
 	VOID PatchEx(LPVOID address, T data) noexcept
 	{
 		PatchEx(address, (LPBYTE)&data, sizeof(T));
+	}
+#else
+	template<typename T>
+	T Read(LPVOID src) noexcept
+	{
+		T data;
+		Read(&data, (LPBYTE)src, sizeof(T));
+		return data;
+	}
+
+	VOID Read(LPVOID dst, LPBYTE src, size_t size) noexcept
+	{
+		DWORD oldProtect;
+		VirtualProtect(src, size, PAGE_READWRITE, &oldProtect);
+		__movsb((LPBYTE)dst, (LPBYTE)src, size);
+		VirtualProtect(src, size, oldProtect, &oldProtect);
+	}
+
+	VOID Copy(LPVOID dst, LPBYTE src, size_t size) noexcept
+	{
+		Patch(dst, src, size);
+	}
+
+	VOID Patch(LPVOID address, LPBYTE data, size_t size) noexcept
+	{
+		DWORD oldProtect;
+		VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+		__movsb((LPBYTE)address, (LPBYTE)data, size);
+		VirtualProtect(address, size, oldProtect, &oldProtect);
+	}
+
+	template<typename T>
+	VOID Patch(LPVOID address, T data) noexcept
+	{
+		Patch(address, (LPBYTE)&data, sizeof(T));
 	}
 #endif
 
