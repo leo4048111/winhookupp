@@ -23,6 +23,9 @@ namespace {
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+
+#else
 TEST(winhookupp_test, winhookupp_test_int3veh)
 {
     using namespace WINHOOKUPP_NM;
@@ -40,3 +43,4 @@ TEST(winhookupp_test, winhookupp_test_int3veh)
     EXPECT_EQ(int3veh.Disable(), true);
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), true);
 }
+#endif

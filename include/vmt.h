@@ -13,17 +13,33 @@ _START_WINHOOKUPP_NM_
 class Vmt: public virtual Hook
 {
 public:
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual ~Vmt() noexcept override {
+        if (IsEnabled()) DisableEx();
+    }
+#else
     virtual ~Vmt() noexcept override {
         if (IsEnabled()) Disable();
     }
+#endif
 
 private:
-    bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept;
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    bool EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
+#else
+    bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
+#endif
 
 public:
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual bool EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin = nullptr) noexcept;
+
+    virtual bool DisableEx() noexcept override;
+#else
     virtual bool Enable(LPVOID target, LPVOID detour, LPVOID inst, LPVOID* origin = nullptr) noexcept;
 
     virtual bool Disable() noexcept override;
+#endif
 
 private:
     LPVOID target_;         // [In] Address of the target function.

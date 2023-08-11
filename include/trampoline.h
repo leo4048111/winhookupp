@@ -14,13 +14,25 @@ private:
 	bool CreateTrampolineFunction() noexcept;
 
 public:
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual ~Trampoline() noexcept override {
+        if (IsEnabled()) DisableEx();
+    }
+#else
     virtual ~Trampoline() noexcept override {
         if (IsEnabled()) Disable();
     }
+#endif
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    virtual bool EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
+
+    virtual bool DisableEx() noexcept override;
+#else
     virtual bool Enable(LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept override;
 
     virtual bool Disable() noexcept override;
+#endif
 	
 private:
     LPVOID target_;         // [In] Address of the target function.

@@ -58,7 +58,7 @@ namespace
 }
 
 #ifdef WINHOOKUPP_EXTERNAL_USAGE
-bool Veh::EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin = nullptr) noexcept
+bool Veh::EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     return false;
 }

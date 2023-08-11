@@ -19,6 +19,9 @@ namespace {
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+
+#else
 TEST(winhookupp_test, winhookupp_test_veh)
 {
     using namespace WINHOOKUPP_NM;
@@ -36,3 +39,4 @@ TEST(winhookupp_test, winhookupp_test_veh)
     EXPECT_EQ(veh.Disable(), true);
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), true);
 }
+#endif

@@ -66,7 +66,11 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     patchAbove_ = false;
     nIP_ = 0;
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    auto& mm = Memory::GetInstance(hProcess_);
+#else
     auto& mm = Memory::GetInstance();
+#endif
 
     do
     {
@@ -75,8 +79,16 @@ bool Trampoline::CreateTrampolineFunction() noexcept
         LPVOID copySrc;
         uintptr_t oldInst = (uintptr_t)target_ + oldPos;
         uintptr_t newInst = (uintptr_t)trampoline_ + newPos;
+        const size_t copyInstSize = 16;
+        LPBYTE oldInstBuffer = (LPBYTE)alloca(copyInstSize);
 
-        copySize = HDE_DISASM((LPVOID)oldInst, &hs);
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+        mm.ReadEx((LPVOID)oldInst, oldInstBuffer, copyInstSize);
+#else
+        mm.Read((LPVOID)oldInst, oldInstBuffer, copyInstSize))
+#endif
+
+        copySize = HDE_DISASM((LPVOID)oldInstBuffer, &hs);
         if (hs.flags & F_ERROR)
             return false;
 
@@ -105,7 +117,11 @@ bool Trampoline::CreateTrampolineFunction() noexcept
 
             // Avoid using memcpy to reduce the footprint.
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+            mm.CopyEx((LPVOID)instBuf, (LPBYTE)oldInst, copySize);
+#else
             mm.Copy((LPVOID)instBuf, (LPBYTE)oldInst, copySize);
+#endif
 
             copySrc = instBuf;
 
@@ -227,7 +243,11 @@ bool Trampoline::CreateTrampolineFunction() noexcept
         nIP_++;
 
         // Copy the instruction.
-        Memory::GetInstance().Copy((LPBYTE)trampoline_ + newPos, (LPBYTE)copySrc, copySize);
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+        mm.CopyEx((LPBYTE)trampoline_ + newPos, (LPBYTE)copySrc, copySize);
+#else
+        mm.Copy((LPBYTE)trampoline_ + newPos, (LPBYTE)copySrc, copySize);
+#endif
 
         newPos += copySize;
         oldPos += hs.len;
@@ -259,12 +279,84 @@ bool Trampoline::CreateTrampolineFunction() noexcept
     jmp.address = (uintptr_t)detour_;
 
     relay_ = (LPBYTE)trampoline_ + newPos;
+
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+    mm.CopyEx((LPVOID)relay_, (LPBYTE)&jmp, sizeof(jmp));
+#else
     mm.Copy((LPVOID)relay_, (LPBYTE)& jmp, sizeof(jmp));
+#endif
+
 #endif
 
     return true;
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+bool Trampoline::EnableEx(HANDLE hProcess, LPVOID target, LPVOID detour, LPVOID* origin) noexcept
+{
+    hProcess_ = hProcess;
+
+    // check if the target and detour address are executable
+    auto& mm = Memory::GetInstance(hProcess_);
+    if (!mm.IsExecutableAddress(target) || !mm.IsExecutableAddress(detour))
+        return false;
+
+    trampoline_ = mm.AllocateBuffer(target);
+    if (!trampoline_) return false;
+
+    target_ = target;
+    detour_ = detour;
+    if (!CreateTrampolineFunction()) return false;
+
+    enabled_ = false;
+    queueEnable_ = false;
+
+    patchedPos_ = (LPBYTE)target_;
+
+    // check if trampoline is reachable within a 32-bit rel jmp(very likely reachable)
+    // x64 needs relaying
+#if defined(_M_X64) || defined(__x86_64__)
+    int64_t jmpDst = (int64_t)((LPBYTE)relay_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
+#else
+    int64_t jmpDst = (int64_t)((LPBYTE)detour_ - ((LPBYTE)patchedPos_ + sizeof(JmpRel)));
+#endif
+    patchedSize_ = sizeof(JmpRel);
+
+    if (patchAbove_)
+    {
+        (LPBYTE)patchedPos_ -= sizeof(JmpRel);
+        patchedSize_ += sizeof(JmpRelShort);
+    }
+
+    // backup patched bytes
+    mm.CopyEx((LPVOID)backup_, (LPBYTE)patchedPos_, patchedSize_);
+
+    JmpRel* pJmp = (JmpRel*)patchedPos_;
+    mm.PatchEx(&pJmp->opcode, (BYTE)0xE9);
+    mm.PatchEx(&pJmp->operand, (uint32_t)jmpDst);
+
+    if (patchAbove_)
+    {
+        JmpRelShort* pShortJmp = (JmpRelShort*)target_;
+        uint8_t shortJmpDst = (UINT8)(0 - (sizeof(JmpRelShort) + sizeof(JmpRel)));
+        mm.PatchEx(&pShortJmp->opcode, (char)0xEB);
+        mm.PatchEx(&pShortJmp->operand, shortJmpDst);
+    }
+
+    if (origin) *origin = trampoline_;
+
+    enabled_ = true;
+    return true;
+}
+
+bool Trampoline::DisableEx() noexcept
+{
+    auto& mm = Memory::GetInstance(hProcess_);
+    mm.PatchEx((LPVOID)patchedPos_, (LPBYTE)backup_, patchedSize_);
+    enabled_ = false;
+    return true;
+}
+#else
 bool Trampoline::Enable(LPVOID target, LPVOID detour, LPVOID* origin) noexcept
 {
     // check if the target and detour address are executable
@@ -327,5 +419,6 @@ bool Trampoline::Disable() noexcept
     enabled_ = false;
     return true;
 }
+#endif
 
 _END_WINHOOKUPP_NM_

@@ -6,6 +6,9 @@
 
 #include "memory.h"
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+
+#else
 TEST(winhookupp_test, winhookupp_test_memory)
 {
     using namespace WINHOOKUPP_NM;
@@ -26,3 +29,4 @@ TEST(winhookupp_test, winhookupp_test_memory)
 
     memory.FreeBuffer(alloc);
 }
+#endif

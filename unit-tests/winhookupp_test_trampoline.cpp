@@ -19,6 +19,9 @@ namespace {
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+
+#else
 TEST(winhookupp_test, winhookupp_test_trampoline)
 {
     using namespace WINHOOKUPP_NM;
@@ -40,3 +43,4 @@ TEST(winhookupp_test, winhookupp_test_trampoline)
     EXPECT_EQ(tramp.Disable(), true);
     EXPECT_EQ(WriteConsole(hConsoleOutput, buf, len, &dwChars, nullptr), true);
 }
+#endif

@@ -55,6 +55,9 @@ namespace {
     }
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+
+#else
 TEST(winhookupp_test, winhookupp_test_vmt)
 {
     using namespace WINHOOKUPP_NM;
@@ -91,3 +94,4 @@ TEST(winhookupp_test, winhookupp_test_vmt)
     ASSERT_EQ(vmt.Disable(), true);
     ASSERT_EQ(pDummy->DummyTarget2(), true);
 }
+#endif

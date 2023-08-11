@@ -54,6 +54,12 @@ namespace {
 	}
 }
 
+#ifdef WINHOOKUPP_EXTERNAL_USAGE
+int main(int argc, char** argv) {
+    using namespace WINHOOKUPP_NM;
+    return 0;
+}
+#else
 int main(int argc, char** argv) {
     using namespace WINHOOKUPP_NM;
 
@@ -127,3 +133,4 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+#endif
