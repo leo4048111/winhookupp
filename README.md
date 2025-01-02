@@ -74,3 +74,5 @@ int main(int argc, char** argv) {
 # Credits
 + https://github.com/TsudaKageyu/minhook
 + https://github.com/hoangprod/LeoSpecial-VEH-Hook
+# Contribution
+Contributions are welcomed, please submit your PR for review.
